@@ -54,7 +54,7 @@ export async function POST(
     // Create new schedule
     const newSchedule = await prisma.lichTheoDoi.create({
       data: {
-        petId: existingPet.maHoSo,
+        maHoSo: existingPet.maHoSo,
         ngayKham,
         ngayTaiKham,
         trangThaiKham: validatedData.trangThaiKham,
@@ -114,7 +114,7 @@ export async function GET(
     
     // Get all schedules for this pet
     const schedules = await prisma.lichTheoDoi.findMany({
-      where: { petId: maHoSo },
+      where: { maHoSo: maHoSo },
       orderBy: {
         ngayKham: 'desc'
       },
