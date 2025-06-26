@@ -1,0 +1,58 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Admin {
+  id        Int      @id @default(autoincrement())
+  name      String?
+  phone     String?
+  password  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime? @updatedAt
+}
+
+model KhachHang {
+  maKhachHang  String     @id @default(cuid())
+  tenKhachHang String
+  soDienThoai  String     @unique
+  diaChi       String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime?   @updatedAt
+
+  hoSoThu      HoSoThu[]  // Một khách có nhiều hồ sơ thú
+}
+
+model HoSoThu {
+  maHoSo       String        @id @default(cuid())
+  tenThu       String
+  loai         String
+  trangThai    String
+
+  maKhachHang  String
+  khachHang    KhachHang     @relation(fields: [maKhachHang], references: [maKhachHang])
+
+  lichTheoDoi  LichTheoDoi[] // Một thú có nhiều lịch theo dõi
+
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime?     @updatedAt
+}
+
+model LichTheoDoi {
+  id             Int       @id @default(autoincrement())
+  ngayKham       DateTime  @default(now())
+  ngayTaiKham    DateTime?
+  ghiChu         String?
+  trangThaiKham  String
+
+  maHoSo         String
+  hoSoThu        HoSoThu   @relation(fields: [maHoSo], references: [maHoSo])
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime?  @updatedAt
+}
