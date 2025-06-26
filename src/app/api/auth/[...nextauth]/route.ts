@@ -1,5 +1,4 @@
-import NextAuth from 'next-auth'
-import { AuthOptions } from 'next-auth'
+import NextAuth, { AuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 
 // Extend the built-in session types
@@ -66,4 +65,3 @@ const authOptions: AuthOptions = {
 const handler = NextAuth(authOptions)
 
 export { handler as GET, handler as POST }
-export { authOptions }
