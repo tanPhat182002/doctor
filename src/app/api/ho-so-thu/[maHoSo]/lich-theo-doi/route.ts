@@ -19,10 +19,10 @@ const createScheduleSchema = z.object({
 // POST - Create new follow-up schedule for pet
 export async function POST(
   request: NextRequest,
-  { params }: { params: { maHoSo: string } }
+  { params }: { params: Promise<{ maHoSo: string }> }
 ) {
   try {
-    const { maHoSo } = params
+    const { maHoSo } = await params
     const body = await request.json()
     
     // Validate input data
@@ -95,10 +95,10 @@ export async function POST(
 // GET - Get all schedules for a pet
 export async function GET(
   request: NextRequest,
-  { params }: { params: { maHoSo: string } }
+  { params }: { params: Promise<{ maHoSo: string }> }
 ) {
   try {
-    const { maHoSo } = params
+    const { maHoSo } = await params
     
     // Check if pet exists
     const existingPet = await prisma.hoSoThu.findUnique({
