@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
@@ -43,7 +43,7 @@ interface ScheduleResponse {
   }
 }
 
-export default function LichKhamPage() {
+function LichKhamContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   
@@ -279,5 +279,19 @@ export default function LichKhamPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function LichKhamPage() {
+  return (
+    <Suspense fallback={
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex justify-center items-center py-8">
+          <div className="text-gray-500">Đang tải...</div>
+        </div>
+      </div>
+    }>
+      <LichKhamContent />
+    </Suspense>
   )
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
@@ -38,7 +38,7 @@ interface Pet {
   }
 }
 
-export default function ThemLichKhamPage() {
+function ThemLichKhamContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [petId, setPetId] = useState<string | null>(null)
@@ -321,5 +321,19 @@ export default function ThemLichKhamPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function ThemLichKhamPage() {
+  return (
+    <Suspense fallback={
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex justify-center items-center py-8">
+          <div className="text-gray-500">Đang tải...</div>
+        </div>
+      </div>
+    }>
+      <ThemLichKhamContent />
+    </Suspense>
   )
 }
