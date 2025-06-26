@@ -92,7 +92,7 @@ export default function LichKhamPage() {
   
   useEffect(() => {
     fetchSchedules()
-  }, [searchParams])
+  }, [searchParams, fetchSchedules])
   
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
