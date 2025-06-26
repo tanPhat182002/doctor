@@ -34,6 +34,7 @@ interface FormErrors {
   maKhachHang?: string
   ngayKham?: string
   ngayTaiKham?: string
+  ghiChu?: string
   trangThaiKham?: string
   submit?: string
 }

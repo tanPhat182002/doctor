@@ -1,9 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, Search, Filter, Calendar, FileText } from 'lucide-react'
+import { Search, Filter, Calendar, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 // Removed Card import - using native HTML elements instead
@@ -52,10 +55,16 @@ export default function LichKhamPage() {
     totalPages: 0
   })
   const [isLoading, setIsLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '')
-  const [statusFilter, setStatusFilter] = useState(searchParams.get('trangThaiKham') || '')
+  const [searchTerm, setSearchTerm] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
   
-  const fetchSchedules = async () => {
+  // Initialize search params after component mounts
+  useEffect(() => {
+    setSearchTerm(searchParams.get('search') || '')
+    setStatusFilter(searchParams.get('trangThaiKham') || '')
+  }, [searchParams])
+  
+  const fetchSchedules = useCallback(async () => {
     setIsLoading(true)
     try {
       const params = new URLSearchParams()
@@ -79,7 +88,7 @@ export default function LichKhamPage() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [searchParams, searchTerm, statusFilter])
   
   useEffect(() => {
     fetchSchedules()

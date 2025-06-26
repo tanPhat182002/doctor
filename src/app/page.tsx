@@ -24,13 +24,34 @@ export default function Home() {
   const [isVisible, setIsVisible] = useState(false)
   const [currentTestimonial, setCurrentTestimonial] = useState(0)
 
+  const testimonials = [
+    {
+      name: "Chị Nguyễn Lan",
+      pet: "Mèo Miu",
+      content: "Bác sĩ rất tận tâm và chuyên nghiệp. Miu được chăm sóc rất tốt!",
+      rating: 5
+    },
+    {
+      name: "Anh Trần Minh",
+      pet: "Chó Lucky",
+      content: "Phòng khám sạch sẽ, bác sĩ giải thích rõ ràng. Lucky khỏe mạnh trở lại!",
+      rating: 5
+    },
+    {
+      name: "Chị Lê Hoa",
+      pet: "Thỏ Bông",
+      content: "Dịch vụ tuyệt vời, giá cả hợp lý. Sẽ quay lại lần sau!",
+      rating: 5
+    }
+  ]
+
   useEffect(() => {
     setIsVisible(true)
     const interval = setInterval(() => {
       setCurrentTestimonial(prev => (prev + 1) % testimonials.length)
     }, 5000)
     return () => clearInterval(interval)
-  }, [])
+  }, [testimonials.length])
 
   const doctors = [
     {
@@ -86,27 +107,6 @@ export default function Home() {
       title: "Cấp cứu 24/7",
       description: "Dịch vụ cấp cứu thú cưng 24 giờ trong các trường hợp khẩn cấp",
       color: "bg-orange-500"
-    }
-  ]
-
-  const testimonials = [
-    {
-      name: "Chị Nguyễn Lan",
-      pet: "Mèo Miu",
-      content: "Bác sĩ rất tận tâm và chuyên nghiệp. Miu được chăm sóc rất tốt!",
-      rating: 5
-    },
-    {
-      name: "Anh Trần Minh",
-      pet: "Chó Lucky",
-      content: "Phòng khám sạch sẽ, bác sĩ giải thích rõ ràng. Lucky khỏe mạnh trở lại!",
-      rating: 5
-    },
-    {
-      name: "Chị Lê Hoa",
-      pet: "Thỏ Bông",
-      content: "Dịch vụ tuyệt vời, giá cả hợp lý. Sẽ quay lại lần sau!",
-      rating: 5
     }
   ]
 

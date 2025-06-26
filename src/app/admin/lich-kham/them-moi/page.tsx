@@ -1,6 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -38,7 +41,13 @@ interface Pet {
 export default function ThemLichKhamPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const petId = searchParams.get('petId')
+  const [petId, setPetId] = useState<string | null>(null)
+
+  // Get petId from searchParams after component mounts
+  useEffect(() => {
+    const id = searchParams.get('petId')
+    setPetId(id)
+  }, [searchParams])
 
   const [formData, setFormData] = useState<FormData>({
     petId: petId || '',
@@ -51,12 +60,10 @@ export default function ThemLichKhamPage() {
   const [errors, setErrors] = useState<FormErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [pet, setPet] = useState<Pet | null>(null)
-  const [isLoadingPet, setIsLoadingPet] = useState(false)
 
   // Fetch pet information if petId is provided
   useEffect(() => {
     if (petId) {
-      setIsLoadingPet(true)
       fetch(`/api/ho-so-thu/${petId}`)
         .then(res => res.json())
         .then(data => {
@@ -65,7 +72,6 @@ export default function ThemLichKhamPage() {
           }
         })
         .catch(err => console.error('Error fetching pet:', err))
-        .finally(() => setIsLoadingPet(false))
     }
   }, [petId])
 

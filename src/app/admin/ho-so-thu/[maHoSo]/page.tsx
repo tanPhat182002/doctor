@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter, useParams } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Edit, Calendar, Plus, FileText, User, Phone, MapPin } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -11,8 +11,10 @@ interface Pet {
   maHoSo: string
   tenThu: string
   loai: string
- 
+  tuoi?: number
+  canNang?: number
   trangThai: string
+  moTa?: string
  
   khachHang: {
     maKhachHang: string
@@ -32,7 +34,8 @@ interface Pet {
 interface FormData {
   tenThu: string
   loai: string
-  
+  tuoi: string
+  canNang: string
   trangThai: string
   moTa: string
 }
@@ -41,7 +44,8 @@ interface FormErrors {
   tenThu?: string
   loai?: string
   tuoi?: string
- 
+  canNang?: string
+  trangThai?: string
   moTa?: string
 }
 
@@ -70,7 +74,6 @@ const animalEmojis = {
 }
 
 export default function PetDetailPage() {
-  const router = useRouter()
   const params = useParams()
   const maHoSo = params.maHoSo as string
 
@@ -81,7 +84,8 @@ export default function PetDetailPage() {
   const [formData, setFormData] = useState<FormData>({
     tenThu: '',
     loai: '',
-    
+    tuoi: '',
+    canNang: '',
     trangThai: '',
     moTa: ''
   })
@@ -359,7 +363,8 @@ export default function PetDetailPage() {
                         setFormData({
                           tenThu: pet.tenThu,
                           loai: pet.loai,
-                        
+                          tuoi: pet.tuoi?.toString() || '',
+                          canNang: pet.canNang?.toString() || '',
                           trangThai: pet.trangThai,
                           moTa: pet.moTa || ''
                         })

@@ -80,7 +80,6 @@ const statusConfig = {
 
 // Custom Event Component
 function EventComponent({ event }: { event: AppointmentEvent }) {
-  const eventStatus = statusConfig[event.resource.trangThaiKham as keyof typeof statusConfig]
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
   const isFollowUp = event.title.includes('[Tái khám]')
   
@@ -103,7 +102,14 @@ function EventComponent({ event }: { event: AppointmentEvent }) {
 }
 
 // Custom Toolbar Component
-function CustomToolbar({ label, onNavigate, onView, view }: any) {
+interface CustomToolbarProps {
+  label: string
+  onNavigate: (action: 'PREV' | 'NEXT' | 'TODAY') => void
+  onView: (view: View) => void
+  view: View
+}
+
+function CustomToolbar({ label, onNavigate, onView, view }: CustomToolbarProps) {
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
   
   return (
@@ -283,10 +289,10 @@ export function AppointmentCalendar({
             views={typeof window !== 'undefined' && window.innerWidth < 768 ? [Views.MONTH, Views.DAY, Views.AGENDA] : [Views.MONTH, Views.WEEK, Views.DAY, Views.AGENDA]}
             formats={{
               timeGutterFormat: 'HH:mm',
-              eventTimeRangeFormat: ({ start, end }: { start: Date; end: Date }, culture?: string, localizer?: any) =>
+              eventTimeRangeFormat: ({ start, end }: { start: Date; end: Date }, culture?: string, localizer?: { format: (date: Date, format: string, culture?: string) => string }) =>
                 localizer?.format(start, 'HH:mm', culture) + ' - ' + localizer?.format(end, 'HH:mm', culture) || `${moment(start).format('HH:mm')} - ${moment(end).format('HH:mm')}`,
               agendaTimeFormat: 'HH:mm',
-              agendaTimeRangeFormat: ({ start, end }: { start: Date; end: Date }, culture?: string, localizer?: any) =>
+              agendaTimeRangeFormat: ({ start, end }: { start: Date; end: Date }, culture?: string, localizer?: { format: (date: Date, format: string, culture?: string) => string }) =>
                 localizer?.format(start, 'HH:mm', culture) + ' - ' + localizer?.format(end, 'HH:mm', culture) || `${moment(start).format('HH:mm')} - ${moment(end).format('HH:mm')}`
             }}
             eventPropGetter={(event) => {
