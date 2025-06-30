@@ -8,6 +8,4 @@ export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient()
 
-if (process.env.DATABASE_URL) {
-  prisma.$connect()
-}
+if (process.env.DATABASE_URL !== 'production') globalForPrisma.prisma = prisma
