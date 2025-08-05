@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { CustomerTable } from '@/components/tables/customer-table'
 import { SearchBar } from '@/components/shared/search-bar'
+import type { CustomerTableData } from '@/types'
 
 interface Address {
   maXa: string
@@ -15,21 +16,7 @@ interface Address {
   }
 }
 
-interface Customer {
-  maKhachHang: string
-  tenKhachHang: string
-  soDienThoai: string
-  diaChi: string | null
-  createdAt: Date
-  xa: {
-    maXa: string
-    tenXa: string | null
-  } | null
-  hoSoThu: {
-    maHoSo: string
-    tenThu: string
-  }[]
-}
+// Using CustomerTableData from types instead of local interface
 
 interface AddressDetailPageProps {
   params: Promise<{ maXa: string }>
@@ -71,7 +58,7 @@ export default async function AddressDetailPage({ params, searchParams }: Addres
   }
 
   const customersData = await customersResponse.json()
-     const customers: Customer[] = customersData.customers || []
+     const customers: CustomerTableData[] = customersData.customers || []
      const pagination = customersData.pagination || { total: 0, page: 1, limit: 10, totalPages: 1 }
 
    if (!address) {

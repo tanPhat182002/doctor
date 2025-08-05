@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Save, FileText, User, Heart, Loader2, Calendar, Clock } from 'lucide-react'
@@ -13,7 +13,7 @@ import { EXAM_STATUSES } from '@/lib/status-manager'
 import { FormValidator } from '@/lib/validation'
 import { calculateFollowUpDate, calculateDaysDifference } from '@/utils/date-calculator'
 
-export default function ThemHoSoThuPage() {
+function ThemHoSoThuPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [isLoading, setIsLoading] = useState(false)
@@ -46,7 +46,7 @@ export default function ThemHoSoThuPage() {
     if (isUpdatingRef.current) return
     
     if (formData.ngayKham && formData.soNgay) {
-      const calculatedDate = calculateFollowUpDate(formData.ngayKham, formData.soNgay)
+      const calculatedDate = calculateFollowUpDate(formData.ngayKham, parseInt(formData.soNgay))
       
       if (calculatedDate && calculatedDate !== formData.ngayTaiKham) {
         isUpdatingRef.current = true
@@ -54,7 +54,7 @@ export default function ThemHoSoThuPage() {
         setTimeout(() => { isUpdatingRef.current = false }, 0)
       }
     }
-  }, [formData.ngayKham, formData.soNgay])
+  }, [formData.ngayKham, formData.soNgay, formData.ngayTaiKham])
 
   // Auto calculate soNgay when ngayTaiKham changes
   useEffect(() => {
@@ -69,7 +69,7 @@ export default function ThemHoSoThuPage() {
         setTimeout(() => { isUpdatingRef.current = false }, 0)
       }
     }
-  }, [formData.ngayKham, formData.ngayTaiKham])
+  }, [formData.ngayKham, formData.ngayTaiKham, formData.soNgay])
 
   const validateForm = (): boolean => {
     const newErrors = FormValidator.validatePet(formData)
@@ -371,5 +371,13 @@ export default function ThemHoSoThuPage() {
         </ul>
       </div>
     </div>
+  )
+}
+
+export default function ThemHoSoThuPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ThemHoSoThuPageContent />
+    </Suspense>
   )
 }
