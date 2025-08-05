@@ -3,113 +3,55 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Edit, Calendar, Plus, FileText, User, Phone, MapPin } from 'lucide-react'
+import { ArrowLeft, Edit, Calendar, Plus, FileText, User, Phone, MapPin, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import type { Pet } from '@/types'
+import { AddScheduleModal } from '../../../../components/modals/add-schedule-modal'
+import { EditScheduleModal, DeleteScheduleModal } from '@/components/modals/edit-schedule-modal'
+import { useExamStatus } from '@/hooks/useStatusManager'
+import type { ExamStatus } from '@/types'
 
-interface Pet {
-  maHoSo: string
+interface PetEditFormData {
   tenThu: string
-  loai: string
-  tuoi?: number
-  canNang?: number
-  trangThai: string
-  moTa?: string
- 
-  khachHang: {
-    maKhachHang: string
-    tenKhachHang: string
-    soDienThoai: string
-    diaChi: string | null
-  }
-  lichTheoDoi: {
-    id: string
-    ngayKham: string
-    ngayTaiKham: string | null
-    trangThaiKham: string
-    ghiChu: string | null
-  }[]
 }
 
-interface FormData {
-  tenThu: string
-  loai: string
-  tuoi: string
-  canNang: string
-  trangThai: string
-  moTa: string
-}
-
-interface FormErrors {
+interface PetEditFormErrors {
   tenThu?: string
-  loai?: string
-  tuoi?: string
-  canNang?: string
-  trangThai?: string
-  moTa?: string
 }
 
-const statusConfig = {
-  KHOE_MANH: { label: 'Khỏe mạnh', color: 'bg-green-100 text-green-800' },
-  THEO_DOI: { label: 'Theo dõi', color: 'bg-yellow-100 text-yellow-800' },
-  MANG_THAI: { label: 'Mang thai', color: 'bg-purple-100 text-purple-800' },
-  SAU_SINH: { label: 'Sau sinh', color: 'bg-pink-100 text-pink-800' },
-  CACH_LY: { label: 'Cách ly', color: 'bg-red-100 text-red-800' }
-}
-
-const scheduleStatusConfig = {
-  CHUA_KHAM: { label: 'Chưa khám', color: 'bg-gray-100 text-gray-800' },
-  DA_KHAM: { label: 'Đã khám', color: 'bg-green-100 text-green-800' },
-  HUY: { label: 'Hủy', color: 'bg-red-100 text-red-800' },
-  HOAN: { label: 'Hoãn', color: 'bg-yellow-100 text-yellow-800' }
-}
-
-const animalEmojis = {
-  CHO: '🐕',
-  MEO: '🐱',
-  CHIM: '🐦',
-  CA: '🐠',
-  THO: '🐰',
-  HAMSTER: '🐹'
-}
+const ITEMS_PER_PAGE = 6
 
 export default function PetDetailPage() {
   const params = useParams()
   const maHoSo = params.maHoSo as string
-
+  const examStatus = useExamStatus()
+  
   const [pet, setPet] = useState<Pet | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isEditing, setIsEditing] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [formData, setFormData] = useState<FormData>({
-    tenThu: '',
-    loai: '',
-    tuoi: '',
-    canNang: '',
-    trangThai: '',
-    moTa: ''
+  const [errors, setErrors] = useState<PetEditFormErrors>({})
+  const [currentSchedulePage, setCurrentSchedulePage] = useState(0)
+  const [formData, setFormData] = useState<PetEditFormData>({
+    tenThu: ''
   })
-  const [errors, setErrors] = useState<FormErrors>({})
 
-  // Fetch pet details
+  // Fetch pet data
   useEffect(() => {
     const fetchPet = async () => {
       try {
+        setIsLoading(true)
         const response = await fetch(`/api/ho-so-thu/${maHoSo}`)
         const data = await response.json()
         
         if (data.success) {
           setPet(data.data)
           setFormData({
-            tenThu: data.data.tenThu,
-            loai: data.data.loai,
-            tuoi: data.data.tuoi?.toString() || '',
-            canNang: data.data.canNang?.toString() || '',
-            trangThai: data.data.trangThai,
-            moTa: data.data.moTa || ''
+            tenThu: data.data.tenThu
           })
         } else {
-          console.error('Error fetching pet:', data.error)
+          console.error('Failed to fetch pet:', data.message)
         }
       } catch (error) {
         console.error('Error fetching pet:', error)
@@ -123,7 +65,7 @@ export default function PetDetailPage() {
     }
   }, [maHoSo])
 
-  const handleInputChange = (field: keyof FormData, value: string) => {
+  const handleInputChange = (field: keyof PetEditFormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: undefined }))
@@ -131,22 +73,12 @@ export default function PetDetailPage() {
   }
 
   const validateForm = (): boolean => {
-    const newErrors: FormErrors = {}
-
-    if (!formData.tenThu.trim()) {
-      newErrors.tenThu = 'Vui lòng nhập tên thú cưng'
-    }
-
-    if (!formData.loai.trim()) {
-      newErrors.loai = 'Vui lòng chọn loại thú cưng'
-    }
-
-    if (!formData.trangThai.trim()) {
-      newErrors.trangThai = 'Vui lòng chọn trạng thái sức khỏe'
-    }
-
+    const newErrors: PetEditFormErrors = {}
     
-
+    if (!formData.tenThu.trim()) {
+      newErrors.tenThu = 'Tên thú cưng là bắt buộc'
+    }
+    
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -159,7 +91,7 @@ export default function PetDetailPage() {
     }
 
     setIsSubmitting(true)
-
+    
     try {
       const response = await fetch(`/api/ho-so-thu/${maHoSo}`, {
         method: 'PUT',
@@ -167,28 +99,21 @@ export default function PetDetailPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          tenThu: formData.tenThu,
-          loai: formData.loai,
-         
-          trangThai: formData.trangThai,
-          moTa: formData.moTa || null
-        }),
+          tenThu: formData.tenThu
+        })
       })
-
+      
       const result = await response.json()
-
+      
       if (result.success) {
-        // Update local state
-        setPet(prev => prev ? { ...prev, ...result.data } : null)
+        setPet(result.data)
         setIsEditing(false)
-        alert('Cập nhật thông tin thành công!')
+        setErrors({})
       } else {
-        console.error('Error updating pet:', result.error)
-        alert('Có lỗi xảy ra khi cập nhật thông tin. Vui lòng thử lại.')
+        console.error('Failed to update pet:', result.message)
       }
     } catch (error) {
-      console.error('Error submitting form:', error)
-      alert('Có lỗi xảy ra khi cập nhật thông tin. Vui lòng thử lại.')
+      console.error('Error updating pet:', error)
     } finally {
       setIsSubmitting(false)
     }
@@ -196,278 +121,412 @@ export default function PetDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto py-6">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-gray-500">Đang tải...</div>
-        </div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
     )
   }
 
   if (!pet) {
     return (
-      <div className="container mx-auto py-6">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-gray-500">Không tìm thấy hồ sơ thú cưng</div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Không tìm thấy hồ sơ</h1>
+          <p className="text-gray-600 mb-4">Hồ sơ thú cưng không tồn tại hoặc đã bị xóa.</p>
+          <Link href="/admin/ho-so-thu">
+            <Button>Quay lại danh sách</Button>
+          </Link>
         </div>
       </div>
     )
   }
 
-  const status = statusConfig[pet.trangThai as keyof typeof statusConfig]
-  const emoji = animalEmojis[pet.loai as keyof typeof animalEmojis] || '🐾'
+  const currentSchedules = pet.lichTheoDoi.slice(
+    currentSchedulePage * ITEMS_PER_PAGE,
+    (currentSchedulePage + 1) * ITEMS_PER_PAGE
+  )
+  const totalSchedulePages = Math.ceil(pet.lichTheoDoi.length / ITEMS_PER_PAGE)
+
+  const nextSchedulePage = () => {
+    if (currentSchedulePage < totalSchedulePages - 1) {
+      setCurrentSchedulePage(prev => prev + 1)
+    }
+  }
+
+  const prevSchedulePage = () => {
+    if (currentSchedulePage > 0) {
+      setCurrentSchedulePage(prev => prev - 1)
+    }
+  }
 
   return (
-    <div className="container mx-auto py-6">
-      {/* Header */}
-      <div className="mb-6">
-        <Link 
-          href="/admin/ho-so-thu" 
-          className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 mb-4"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Quay lại danh sách hồ sơ
-        </Link>
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              {emoji} {pet.tenThu}
-              <span className={`px-2 py-1 rounded-full text-xs font-medium ${status?.color}`}>
-                {status?.label}
-              </span>
-            </h1>
-            <p className="text-gray-600 mt-1">Mã hồ sơ: {pet.maHoSo}</p>
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Header - Mobile & Desktop */}
+        <div className="mb-6">
+          {/* Mobile Header */}
+          <div className="sm:hidden">
+            <div className="flex items-center gap-3 mb-4">
+              <Link href="/admin/ho-so-thu">
+                <Button variant="outline" size="sm">
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+              </Link>
+              <div className="flex-1">
+                <h1 className="text-lg font-bold text-gray-900 truncate">{pet.tenThu}</h1>
+                <p className="text-sm text-gray-600">Mã: {pet.maHoSo}</p>
+              </div>
+            </div>
+            
+            <div className="flex gap-2">
+              {!isEditing && (
+                <Button 
+                  onClick={() => setIsEditing(true)}
+                  size="sm"
+                  className="flex-1"
+                >
+                  <Edit className="mr-2 h-4 w-4" />
+                  Chỉnh sửa
+                </Button>
+              )}
+             
+            </div>
           </div>
-          <div className="flex gap-2">
-            {!isEditing && (
-              <Button onClick={() => setIsEditing(true)} variant="outline">
-                <Edit className="mr-2 h-4 w-4" />
-                Chỉnh sửa
-              </Button>
-            )}
-            <Link href={`/admin/lich-kham/them-moi?petId=${pet.maHoSo}`}>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Thêm lịch khám
-              </Button>
-            </Link>
+
+          {/* Desktop Header */}
+          <div className="hidden sm:block">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <Link href="/admin/ho-so-thu">
+                  <Button variant="outline">
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Quay lại
+                  </Button>
+                </Link>
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">{pet.tenThu}</h1>
+                  <p className="text-gray-600">Mã hồ sơ: {pet.maHoSo}</p>
+                </div>
+              </div>
+              
+              <div className="flex gap-3">
+                {!isEditing && (
+                  <Button 
+                    onClick={() => setIsEditing(true)}
+                    className="transition-all hover:shadow-md"
+                  >
+                    <Edit className="mr-2 h-4 w-4" />
+                    Chỉnh sửa thông tin
+                  </Button>
+                )}
+               
+              </div>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Pet Information */}
-        <div className="lg:col-span-2">
-          <div className="bg-white rounded-lg shadow">
-            <div className="p-6 border-b">
-              <h3 className="text-lg font-semibold flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                Thông tin thú cưng
-              </h3>
-            </div>
-            <div className="p-6">
-              {isEditing ? (
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Thông tin thú cưng */}
+          <div className="lg:col-span-2">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+              <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 sm:p-6 border-b border-gray-100">
+                <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                  <div className="p-2 bg-purple-100 rounded-lg">
+                    <FileText className="h-5 w-5 text-purple-600" />
+                  </div>
+                  <span className="hidden sm:inline">Thông tin thú cưng</span>
+                  <span className="sm:hidden">Thông tin</span>
+                </h2>
+              </div>
+              <div className="p-4 sm:p-6">
+                {isEditing ? (
+                  <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Tên thú cưng *
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Tên thú cưng <span className="text-red-500">*</span>
                       </label>
                       <Input
                         value={formData.tenThu}
                         onChange={(e) => handleInputChange('tenThu', e.target.value)}
-                        className={errors.tenThu ? 'border-red-500' : ''}
+                        className={`transition-all ${errors.tenThu ? 'border-red-500 focus:border-red-500' : 'focus:border-blue-500'}`}
                         disabled={isSubmitting}
+                        placeholder="Nhập tên thú cưng"
                       />
                       {errors.tenThu && (
-                        <p className="text-sm text-red-600 mt-1">{errors.tenThu}</p>
+                        <p className="text-sm text-red-600 mt-1 flex items-center gap-1">
+                          <span className="text-red-500">⚠</span> {errors.tenThu}
+                        </p>
                       )}
                     </div>
 
+                    
+
+                    <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-100">
+                      <Button 
+                        type="submit" 
+                        disabled={isSubmitting}
+                        className="flex-1 sm:flex-none transition-all hover:shadow-md"
+                      >
+                        {isSubmitting ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                            Đang lưu...
+                          </>
+                        ) : (
+                          'Lưu thay đổi'
+                        )}
+                      </Button>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={() => {
+                          setIsEditing(false)
+                          setErrors({})
+                          setFormData({
+                            tenThu: pet.tenThu
+                          })
+                        }}
+                        disabled={isSubmitting}
+                        className="flex-1 sm:flex-none transition-all hover:shadow-md"
+                      >
+                        Hủy bỏ
+                      </Button>
+                    </div>
+                  </form>
+                ) : (
+                  <div className="space-y-6">
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <label className="text-sm font-medium text-gray-700 block mb-2">Tên thú cưng</label>
+                      <p className="text-lg font-semibold text-gray-900">{pet.tenThu}</p>
+                    </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Loại thú cưng *
-                      </label>
-                      <select
-                        value={formData.loai}
-                        onChange={(e) => handleInputChange('loai', e.target.value)}
-                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.loai ? 'border-red-500' : 'border-gray-300'}`}
-                        disabled={isSubmitting}
-                      >
-                        <option value="">Chọn loại thú cưng</option>
-                        <option value="CHO">Chó</option>
-                        <option value="MEO">Mèo</option>
-                        <option value="CHIM">Chim</option>
-                        <option value="CA">Cá</option>
-                        <option value="THO">Thỏ</option>
-                        <option value="HAMSTER">Hamster</option>
-                      </select>
-                      {errors.loai && (
-                        <p className="text-sm text-red-600 mt-1">{errors.loai}</p>
-                      )}
+                      <label className="text-sm font-medium text-gray-700 block mb-2">Trạng thái sức khỏe hiện tại</label>
+                      <p className="text-lg font-semibold text-gray-900">{pet.trangThai}</p>
                     </div>
-
-                   
-
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Trạng thái sức khỏe *
-                      </label>
-                      <select
-                        value={formData.trangThai}
-                        onChange={(e) => handleInputChange('trangThai', e.target.value)}
-                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.trangThai ? 'border-red-500' : 'border-gray-300'}`}
-                        disabled={isSubmitting}
-                      >
-                        <option value="">Chọn trạng thái</option>
-                        <option value="KHOE_MANH">Khỏe mạnh</option>
-                        <option value="THEO_DOI">Theo dõi</option>
-                        <option value="MANG_THAI">Mang thai</option>
-                        <option value="SAU_SINH">Sau sinh</option>
-                        <option value="CACH_LY">Cách ly</option>
-                      </select>
-                      {errors.trangThai && (
-                        <p className="text-sm text-red-600 mt-1">{errors.trangThai}</p>
-                      )}
-                    </div>
-
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Mô tả
-                      </label>
-                      <textarea
-                        value={formData.moTa}
-                        onChange={(e) => handleInputChange('moTa', e.target.value)}
-                        rows={3}
-                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.moTa ? 'border-red-500' : 'border-gray-300'}`}
-                        disabled={isSubmitting}
-                        placeholder="Mô tả thêm về thú cưng..."
-                      />
-                      {errors.moTa && (
-                        <p className="text-sm text-red-600 mt-1">{errors.moTa}</p>
-                      )}
-                    </div>
+                    
+                    {/* Hiển thị thông tin từ lịch sử khám gần nhất */}
+                    {pet.lichTheoDoi && pet.lichTheoDoi.length > 0 && (() => {
+                      const latestSchedule = pet.lichTheoDoi.sort((a, b) => new Date(b.ngayKham).getTime() - new Date(a.ngayKham).getTime())[0]
+                      const status = examStatus.getConfig(latestSchedule.trangThaiKham as ExamStatus)
+                      return (
+                        <>
+                          <div>
+                            <label className="text-sm font-medium text-gray-700 block mb-2">Trạng thái khám gần nhất</label>
+                            <div className="flex items-center gap-2">
+                              <span className={`px-3 py-1 rounded-full text-sm font-medium ${status?.className || 'bg-gray-100 text-gray-800'}`}>
+                                {status?.label || latestSchedule.trangThaiKham}
+                              </span>
+                              <span className="text-sm text-gray-500">
+                                ({new Date(latestSchedule.ngayKham).toLocaleDateString('vi-VN')})
+                              </span>
+                            </div>
+                          </div>
+                          
+                          <div className="bg-gray-50 rounded-lg p-4">
+                            <label className="text-sm font-medium text-gray-700 block mb-2">Ghi chú từ lịch khám gần nhất</label>
+                            <p className="text-gray-900 leading-relaxed">
+                              {latestSchedule.ghiChu || (
+                                <span className="text-gray-500 italic">Chưa có ghi chú nào từ lịch khám gần nhất</span>
+                              )}
+                            </p>
+                          </div>
+                        </>
+                      )
+                    })()}
+                    
+                    
                   </div>
+                )}
+              </div>
+            </div>
+          </div>
 
-                  <div className="flex gap-2 pt-4">
-                    <Button type="submit" disabled={isSubmitting}>
-                      {isSubmitting ? 'Đang lưu...' : 'Lưu thay đổi'}
-                    </Button>
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      onClick={() => {
-                        setIsEditing(false)
-                        setErrors({})
-                        // Reset form data
-                        setFormData({
-                          tenThu: pet.tenThu,
-                          loai: pet.loai,
-                          tuoi: pet.tuoi?.toString() || '',
-                          canNang: pet.canNang?.toString() || '',
-                          trangThai: pet.trangThai,
-                          moTa: pet.moTa || ''
-                        })
-                      }}
-                      disabled={isSubmitting}
+          {/* Thông tin chủ nhân */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 sm:p-6 border-b border-gray-100">
+              <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <User className="h-5 w-5 text-blue-600" />
+                </div>
+                <span className="hidden sm:inline">Thông tin chủ nhân</span>
+                <span className="sm:hidden">Chủ nhân</span>
+              </h2>
+            </div>
+            <div className="p-4 sm:p-6">
+              <div className="grid grid-cols-1 gap-4 sm:gap-6">
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <label className="text-sm font-medium text-gray-700 block mb-2">Tên khách hàng</label>
+                  <p className="text-lg font-semibold text-gray-900">{pet.khachHang.tenKhachHang}</p>
+                </div>
+                
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <label className="text-sm font-medium text-gray-700 block mb-2">Số điện thoại</label>
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-green-100 rounded-lg">
+                      <Phone className="h-4 w-4 text-green-600" />
+                    </div>
+                    <a 
+                      href={`tel:${pet.khachHang.soDienThoai}`}
+                      className="text-blue-600 hover:text-blue-800 font-medium transition-colors"
                     >
-                      Hủy
-                    </Button>
-                  </div>
-                </form>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">Tên thú cưng</label>
-                    <p className="text-sm text-gray-900 mt-1">{pet.tenThu}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">Loại</label>
-                    <p className="text-sm text-gray-900 mt-1">{pet.loai}</p>
-                  </div>
-                 
-                  <div className="md:col-span-2">
-                    <label className="text-sm font-medium text-gray-700">Mô tả</label>
-                    <p className="text-sm text-gray-900 mt-1">{pet.moTa || 'Chưa có mô tả'}</p>
+                      {pet.khachHang.soDienThoai}
+                    </a>
                   </div>
                 </div>
-              )}
+                
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <label className="text-sm font-medium text-gray-700 block mb-2">Địa chỉ</label>
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-red-100 rounded-lg mt-0.5">
+                      <MapPin className="h-4 w-4 text-red-600" />
+                    </div>
+                    <p className="text-gray-900 leading-relaxed flex-1">
+                      {pet.khachHang.diaChi}
+                      {pet.khachHang.xa && `, ${pet.khachHang.xa.tenXa}`}
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Owner Information & Schedule History */}
-        <div className="space-y-6">
-          {/* Owner Information */}
-          <div className="bg-white rounded-lg shadow">
-            <div className="p-6 border-b">
-              <h3 className="text-lg font-semibold flex items-center gap-2">
-                <User className="h-5 w-5" />
-                Thông tin chủ nhân
-              </h3>
-            </div>
-            <div className="p-6 space-y-3">
-              <div className="flex items-center gap-2">
-                <User className="h-4 w-4 text-gray-500" />
-                <span className="text-sm text-gray-900">{pet.khachHang.tenKhachHang}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Phone className="h-4 w-4 text-gray-500" />
-                <span className="text-sm text-gray-900">{pet.khachHang.soDienThoai}</span>
-              </div>
-              {pet.khachHang.diaChi && (
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-gray-500" />
-                  <span className="text-sm text-gray-900">{pet.khachHang.diaChi}</span>
+        {/* Lịch sử khám */}
+        <div className="mt-6">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 sm:p-6 border-b border-gray-100">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                    <div className="p-2 bg-green-100 rounded-lg">
+                      <Calendar className="h-5 w-5 text-green-600" />
+                    </div>
+                    <span className="hidden sm:inline">Lịch sử khám bệnh ({pet.lichTheoDoi.length} lần khám)</span>
+                    <span className="sm:hidden">Lịch khám ({pet.lichTheoDoi.length})</span>
+                  </h2>
+                  <AddScheduleModal 
+                    petId={pet.maHoSo}
+                    onSuccess={() => {
+                      // Refresh lịch khám sau khi thêm thành công
+                      window.location.reload()
+                    }}
+                    triggerButton={
+                      <Button size="sm" className="ml-3">
+                        <Plus className="mr-2 h-4 w-4" />
+                        <span className="hidden sm:inline">Thêm lịch khám</span>
+                        <span className="sm:hidden">Thêm</span>
+                      </Button>
+                    }
+                  />
                 </div>
-              )}
+                {totalSchedulePages > 1 && (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={prevSchedulePage}
+                      disabled={currentSchedulePage === 0}
+                      className="transition-all hover:shadow-md"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <span className="text-sm text-gray-600 px-2">
+                      {currentSchedulePage + 1} / {totalSchedulePages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={nextSchedulePage}
+                      disabled={currentSchedulePage === totalSchedulePages - 1}
+                      className="transition-all hover:shadow-md"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-
-          {/* Schedule History */}
-          <div className="bg-white rounded-lg shadow">
-            <div className="p-6 border-b">
-              <h3 className="text-lg font-semibold flex items-center gap-2">
-                <Calendar className="h-5 w-5" />
-                Lịch sử khám
-              </h3>
-            </div>
-            <div className="p-6">
+            <div className="p-4 sm:p-6">
               {pet.lichTheoDoi.length > 0 ? (
-                <div className="space-y-3">
-                  {pet.lichTheoDoi.slice(0, 5).map((schedule) => {
-                    const scheduleStatus = scheduleStatusConfig[schedule.trangThaiKham as keyof typeof scheduleStatusConfig]
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {currentSchedules.map((schedule) => {
                     return (
-                      <div key={schedule.id} className="border rounded-lg p-3">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium">
+                      <div key={schedule.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all hover:border-blue-300 relative">
+                        <div className="absolute top-2 right-2">
+                          <DeleteScheduleModal 
+                            schedule={schedule}
+                            onSuccess={() => {
+                              // Refresh lịch khám sau khi xóa thành công
+                              window.location.reload()
+                            }}
+                          />
+                        </div>
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3 pr-8">
+                          <span className="text-sm font-semibold text-gray-900">
                             {new Date(schedule.ngayKham).toLocaleDateString('vi-VN')}
                           </span>
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${scheduleStatus?.color}`}>
-                            {scheduleStatus?.label}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${(() => {
+                              const status = examStatus.getConfig(schedule.trangThaiKham as ExamStatus)
+                              return status?.className || 'bg-gray-100 text-gray-800'
+                            })()}`}>
+                              {(() => {
+                                const status = examStatus.getConfig(schedule.trangThaiKham as ExamStatus)
+                                return status?.label || schedule.trangThaiKham
+                              })()}
+                            </span>
+                            <EditScheduleModal 
+                              schedule={schedule}
+                              onSuccess={() => {
+                                // Refresh lịch khám sau khi sửa thành công
+                                window.location.reload()
+                              }}
+                            />
+                          </div>
                         </div>
-                        {schedule.ngayTaiKham && (
-                          <p className="text-xs text-gray-600 mb-1">
-                            Tái khám: {new Date(schedule.ngayTaiKham).toLocaleDateString('vi-VN')}
-                          </p>
-                        )}
+                        
+                        <div className="space-y-2 text-sm text-gray-600">
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium">Thời gian theo dõi:</span>
+                            <span className="text-gray-900">{schedule.soNgay} ngày</span>
+                          </div>
+                          
+                          {schedule.ngayTaiKham && (
+                            <div className="flex items-center justify-between">
+                              <span className="font-medium">Tái khám:</span>
+                              <span className="text-gray-900">{new Date(schedule.ngayTaiKham).toLocaleDateString('vi-VN')}</span>
+                            </div>
+                          )}
+                        </div>
+                        
                         {schedule.ghiChu && (
-                          <p className="text-xs text-gray-600">{schedule.ghiChu}</p>
+                          <div className="mt-3 pt-3 border-t border-gray-100">
+                            <p className="text-xs text-gray-600 leading-relaxed">
+                              <span className="font-medium">Ghi chú:</span> {schedule.ghiChu}
+                            </p>
+                          </div>
                         )}
                       </div>
                     )
                   })}
-                  {pet.lichTheoDoi.length > 5 && (
-                    <p className="text-xs text-gray-500 text-center">
-                      Và {pet.lichTheoDoi.length - 5} lịch khám khác...
-                    </p>
-                  )}
                 </div>
               ) : (
-                <p className="text-sm text-gray-500 text-center py-4">
-                  Chưa có lịch khám nào
-                </p>
+                <div className="text-center py-8 sm:py-12">
+                  <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                    <Calendar className="h-8 w-8 text-gray-400" />
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">Chưa có lịch khám</h3>
+                  <p className="text-gray-500 mb-6 max-w-sm mx-auto">
+                    Thú cưng này chưa có lịch sử khám bệnh nào. Hãy tạo lịch khám đầu tiên.
+                  </p>
+                  <Link href={`/admin/lich-kham/them-moi?maHoSo=${pet.maHoSo}`}>
+                    <Button className="w-full sm:w-auto transition-all hover:shadow-md">
+                      <Plus className="mr-2 h-4 w-4" />
+                      <span className="hidden sm:inline">Thêm lịch khám đầu tiên</span>
+                      <span className="sm:hidden">Thêm lịch khám</span>
+                    </Button>
+                  </Link>
+                </div>
               )}
             </div>
           </div>

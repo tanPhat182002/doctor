@@ -16,72 +16,16 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { formatDate, formatPhoneNumber } from '@/lib/utils'
+import { useExamStatus } from '@/hooks/useStatusManager'
 
-interface Schedule {
-  id: number
-  ngayKham: Date
-  ngayTaiKham: Date | null
-  ghiChu: string | null
-  trangThaiKham: string
-  hoSoThu: {
-    maHoSo: string
-    tenThu: string
-    loai: string
-    trangThai: string
-    khachHang: {
-      maKhachHang: string
-      tenKhachHang: string
-      soDienThoai: string
-      diaChi: string | null
-    }
-  }
-}
+import type { ScheduleTableData, ScheduleTableProps, ExamStatus } from '@/types'
+import { ANIMAL_EMOJIS } from '@/types/constants'
 
-interface ScheduleTableProps {
-  schedules: Schedule[]
-  pagination: {
-    total: number
-    page: number
-    limit: number
-    totalPages: number
-  }
-}
 
-// Status configuration
-const statusConfig = {
-  CHUA_KHAM: {
-    label: 'Chưa khám',
-    className: 'bg-yellow-100 text-yellow-800',
-    emoji: '⏳'
-  },
-  DA_KHAM: {
-    label: 'Đã khám',
-    className: 'bg-green-100 text-green-800',
-    emoji: '✅'
-  },
-  HUY: {
-    label: 'Hủy',
-    className: 'bg-red-100 text-red-800',
-    emoji: '❌'
-  },
-  HOAN: {
-    label: 'Hoãn',
-    className: 'bg-orange-100 text-orange-800',
-    emoji: '⏸️'
-  }
-}
 
-// Animal type emojis
-const animalEmojis: { [key: string]: string } = {
-  CHO: '🐕',
-  MEO: '🐱',
-  CHIM: '🐦',
-  CA: '🐠',
-  THO: '🐰',
-  HAMSTER: '🐹'
-}
-
-export function ScheduleTable({ schedules, pagination }: ScheduleTableProps) {
+export function ScheduleTable({ data: schedules, pagination }: ScheduleTableProps) {
+  const examStatus = useExamStatus()
+  
   return (
     <div className="space-y-4" suppressHydrationWarning>
       <Table>
@@ -97,13 +41,13 @@ export function ScheduleTable({ schedules, pagination }: ScheduleTableProps) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {schedules.map((schedule) => {
-            const status = statusConfig[schedule.trangThaiKham as keyof typeof statusConfig] || {
+          {schedules.map((schedule: ScheduleTableData) => {
+            const status = examStatus.getConfig(schedule.trangThaiKham as ExamStatus) || {
               label: schedule.trangThaiKham,
               className: 'bg-gray-100 text-gray-800',
               emoji: '❓'
             }
-            const animalEmoji = animalEmojis[schedule.hoSoThu.loai] || '🐾'
+            const animalEmoji = ANIMAL_EMOJIS[schedule.hoSoThu.loai] || '🐾'
 
             return (
               <TableRow key={schedule.id}>

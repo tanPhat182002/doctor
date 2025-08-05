@@ -2,15 +2,16 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, Users, FileText, Calendar, BarChart3 } from 'lucide-react'
+import { Home, Users, FileText, Calendar, MapPin } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navItems = [
-  { href: '/admin', icon: Home, label: 'Dashboard' },
+  { href: '/admin/xa', icon: MapPin, label: 'Xã' },
+
   { href: '/admin/khach-hang', icon: Users, label: 'Khách hàng' },
   { href: '/admin/ho-so-thu', icon: FileText, label: 'Hồ sơ thú' },
   { href: '/admin/lich-kham', icon: Calendar, label: 'Lịch khám' },
-  { href: '/admin/bao-cao', icon: BarChart3, label: 'Báo cáo' },
+    { href: '/admin', icon: Home, label: 'Dashboard' },
 ]
 
 export function MobileNav() {

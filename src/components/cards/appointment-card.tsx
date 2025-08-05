@@ -4,6 +4,8 @@ import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import { Clock, MapPin, Phone, Calendar, AlertCircle } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
+import { useExamStatus } from '@/hooks/useStatusManager'
+import type { ExamStatus } from '@/types'
 
 interface AppointmentCardProps {
   appointment: {
@@ -28,35 +30,20 @@ interface AppointmentCardProps {
   showActions?: boolean
 }
 
-const statusConfig = {
-  CHO_KHAM: {
-    label: 'Chờ khám',
-    className: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-    dotClass: 'bg-yellow-500',
-  },
-  DANG_KHAM: {
-    label: 'Đang khám',
-    className: 'bg-blue-100 text-blue-800 border-blue-200',
-    dotClass: 'bg-blue-500',
-  },
-  DA_KHAM: {
-    label: 'Đã khám',
-    className: 'bg-green-100 text-green-800 border-green-200',
-    dotClass: 'bg-green-500',
-  },
-  HUY: {
-    label: 'Đã hủy',
-    className: 'bg-red-100 text-red-800 border-red-200',
-    dotClass: 'bg-red-500',
-  },
-}
+// Removed inline status config - now using status manager
 
 export function AppointmentCard({ 
   appointment, 
   variant = 'default', 
   showActions = true 
 }: AppointmentCardProps) {
-  const status = statusConfig[appointment.trangThai]
+  const examStatus = useExamStatus()
+  const status = examStatus.getConfig(appointment.trangThai as ExamStatus) || {
+    label: appointment.trangThai,
+    className: 'bg-gray-100 text-gray-800 border-gray-200',
+    dotClass: 'bg-gray-500',
+    emoji: '❓'
+  }
   const isToday = new Date(appointment.ngayKham).toDateString() === new Date().toDateString()
   const isPast = new Date(appointment.ngayKham) < new Date()
 

@@ -1,6 +1,6 @@
 import { Suspense } from 'react'
 import Link from 'next/link'
-import { Plus,   Download } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { CustomerTable } from '@/components/tables/customer-table'
 import { CustomerFilters } from '@/components/filters/customer-filters'
 import { SearchBar } from '@/components/shared/search-bar'
@@ -34,10 +34,25 @@ async function getCustomers(searchParams: {
           select: {
             maHoSo: true,
             tenThu: true,
-            loai: true,
-            trangThai: true,
+            lichTheoDoi: {
+              select: {
+                ngayTaiKham: true,
+              },
+              orderBy: {
+                ngayKham: 'desc',
+              },
+              take: 1,
+            },
           },
         },
+        xa: {
+          select: {
+            maXa: true,
+            tenXa: true,
+          },
+        },
+        
+        
       },
       orderBy: { createdAt: 'desc' },
       skip: (page - 1) * limit,
@@ -77,10 +92,7 @@ export default async function KhachHangPage({
         </div>
         
         <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm">
-            <Download className="mr-2 h-4 w-4" />
-            Xuất Excel
-          </Button>
+         
           <Link href="/admin/khach-hang/them-moi">
              <Button>
                <Plus className="mr-2 h-4 w-4" />
@@ -113,7 +125,7 @@ export default async function KhachHangPage({
       <div className="rounded-lg bg-white shadow-sm">
         <Suspense fallback={<TableSkeleton />}>
           <CustomerTable 
-            customers={customers} 
+            data={customers} 
             pagination={pagination}
           />
         </Suspense>

@@ -1,76 +1,25 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, useRef } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Save, FileText, User, Heart, Loader2, Calendar, Clock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
-
-interface Customer {
-  maKhachHang: string
-  tenKhachHang: string
-  soDienThoai: string
-  diaChi: string | null
-}
-
-interface FormData {
-  tenThu: string
-  loai: string
-  trangThai: string
-  maKhachHang: string
-  // Lịch theo dõi
-  ngayKham: string
-  ngayTaiKham: string
-  ghiChu: string
-  trangThaiKham: string
-}
-
-interface FormErrors {
-  tenThu?: string
-  loai?: string
-  trangThai?: string
-  maKhachHang?: string
-  ngayKham?: string
-  ngayTaiKham?: string
-  ghiChu?: string
-  trangThaiKham?: string
-  submit?: string
-}
-
-const animalTypes = [
-  { value: 'CHO', label: 'Chó', emoji: '🐕' },
-  { value: 'MEO', label: 'Mèo', emoji: '🐱' },
-  { value: 'CHIM', label: 'Chim', emoji: '🐦' },
-  { value: 'CA', label: 'Cá', emoji: '🐠' },
-  { value: 'THO', label: 'Thỏ', emoji: '🐰' },
-  { value: 'HAMSTER', label: 'Hamster', emoji: '🐹' },
-]
-
-const healthStatuses = [
-  { value: 'KHOE_MANH', label: 'Khỏe mạnh', emoji: '💚' },
-  { value: 'THEO_DOI', label: 'Theo dõi', emoji: '⚠️' },
-  { value: 'MANG_THAI', label: 'Mang thai', emoji: '🤰' },
-  { value: 'SAU_SINH', label: 'Sau sinh', emoji: '👶' },
-  { value: 'CACH_LY', label: 'Cách ly', emoji: '🚨' },
-]
-
-const examStatuses = [
-  { value: 'DA_KHAM', label: 'Đã khám', emoji: '✅' },
-  { value: 'CHUA_KHAM', label: 'Chưa khám', emoji: '⏳' },
-  { value: 'HUY', label: 'Hủy', emoji: '❌' },
-]
+import { CustomerSearch } from '@/components/shared/customer-search'
+import type { PetFormData, PetFormErrors } from '@/types'
+import { EXAM_STATUSES } from '@/lib/status-manager'
+import { FormValidator } from '@/lib/validation'
+import { calculateFollowUpDate, calculateDaysDifference } from '@/utils/date-calculator'
 
 export default function ThemHoSoThuPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [isLoading, setIsLoading] = useState(false)
-  const [customers, setCustomers] = useState<Customer[]>([])
-  const [loadingCustomers, setLoadingCustomers] = useState(true)
-  const [formData, setFormData] = useState<FormData>({
+  const [formData, setFormData] = useState<PetFormData>({
     tenThu: '',
-    loai: '',
-    trangThai: 'KHOE_MANH',
+    soNgay: '',
     maKhachHang: '',
     // Lịch theo dõi
     ngayKham: new Date().toISOString().slice(0, 16), // Current datetime
@@ -78,66 +27,57 @@ export default function ThemHoSoThuPage() {
     ghiChu: '',
     trangThaiKham: 'CHUA_KHAM'
   })
-  const [errors, setErrors] = useState<FormErrors>({})
+  const [errors, setErrors] = useState<PetFormErrors>({})
 
-  // Load customers on component mount
+
+
+  const isUpdatingRef = useRef(false)
+
+  // Auto-fill customer info from URL parameter
   useEffect(() => {
-    const fetchCustomers = async () => {
-      try {
-        const response = await fetch('/api/khach-hang?limit=1000')
-        if (response.ok) {
-          const data = await response.json()
-          setCustomers(data.customers)
-        }
-      } catch (error) {
-        console.error('Error fetching customers:', error)
-      } finally {
-        setLoadingCustomers(false)
+    const maKhachHang = searchParams.get('maKhachHang')
+    if (maKhachHang) {
+      setFormData(prev => ({ ...prev, maKhachHang }))
+    }
+  }, [searchParams])
+
+  // Auto calculate ngayTaiKham when ngayKham or soNgay changes
+  useEffect(() => {
+    if (isUpdatingRef.current) return
+    
+    if (formData.ngayKham && formData.soNgay) {
+      const calculatedDate = calculateFollowUpDate(formData.ngayKham, formData.soNgay)
+      
+      if (calculatedDate && calculatedDate !== formData.ngayTaiKham) {
+        isUpdatingRef.current = true
+        setFormData(prev => ({ ...prev, ngayTaiKham: calculatedDate }))
+        setTimeout(() => { isUpdatingRef.current = false }, 0)
       }
     }
+  }, [formData.ngayKham, formData.soNgay])
 
-    fetchCustomers()
-  }, [])
+  // Auto calculate soNgay when ngayTaiKham changes
+  useEffect(() => {
+    if (isUpdatingRef.current) return
+    
+    if (formData.ngayKham && formData.ngayTaiKham) {
+      const calculatedDays = calculateDaysDifference(formData.ngayKham, formData.ngayTaiKham)
+      
+      if (calculatedDays !== null && calculatedDays.toString() !== formData.soNgay) {
+        isUpdatingRef.current = true
+        setFormData(prev => ({ ...prev, soNgay: calculatedDays.toString() }))
+        setTimeout(() => { isUpdatingRef.current = false }, 0)
+      }
+    }
+  }, [formData.ngayKham, formData.ngayTaiKham])
 
   const validateForm = (): boolean => {
-    const newErrors: FormErrors = {}
-
-    // Validate tên thú
-    if (!formData.tenThu.trim()) {
-      newErrors.tenThu = 'Tên thú là bắt buộc'
-    } else if (formData.tenThu.trim().length < 2) {
-      newErrors.tenThu = 'Tên thú phải có ít nhất 2 ký tự'
-    }
-
-    // Validate loại
-    if (!formData.loai) {
-      newErrors.loai = 'Loại thú là bắt buộc'
-    }
-
-    // Validate trạng thái
-    if (!formData.trangThai) {
-      newErrors.trangThai = 'Trạng thái là bắt buộc'
-    }
-
-    // Validate khách hàng
-    if (!formData.maKhachHang) {
-      newErrors.maKhachHang = 'Chủ nhân là bắt buộc'
-    }
-
-    // Validate lịch theo dõi
-    if (!formData.ngayKham) {
-      newErrors.ngayKham = 'Ngày khám là bắt buộc'
-    }
-
-    if (!formData.trangThaiKham) {
-      newErrors.trangThaiKham = 'Trạng thái khám là bắt buộc'
-    }
-
+    const newErrors = FormValidator.validatePet(formData)
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
-  const handleInputChange = (field: keyof FormData, value: string) => {
+  const handleInputChange = (field: keyof PetFormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
     // Clear error when user starts typing
     if (errors[field]) {
@@ -163,12 +103,12 @@ export default function ThemHoSoThuPage() {
         },
         body: JSON.stringify({
           tenThu: formData.tenThu.trim(),
-          loai: formData.loai,
-          trangThai: formData.trangThai,
+          soNgay: parseInt(formData.soNgay) || 0,
           maKhachHang: formData.maKhachHang,
           // Lịch theo dõi
           lichTheoDoi: {
             ngayKham: new Date(formData.ngayKham),
+            soNgay: parseInt(formData.soNgay) || 0,
             ngayTaiKham: formData.ngayTaiKham ? new Date(formData.ngayTaiKham) : null,
             ghiChu: formData.ghiChu.trim() || null,
             trangThaiKham: formData.trangThaiKham
@@ -253,56 +193,7 @@ export default function ThemHoSoThuPage() {
                   )}
                 </div>
 
-                {/* Loại thú */}
-                <div>
-                  <label htmlFor="loai" className="block text-sm font-medium text-gray-700 mb-2">
-                    Loại thú <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    id="loai"
-                    value={formData.loai}
-                    onChange={(e) => handleInputChange('loai', e.target.value)}
-                    className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      errors.loai ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                    disabled={isLoading}
-                  >
-                    <option value="">Chọn loại thú</option>
-                    {animalTypes.map((type) => (
-                      <option key={type.value} value={type.value}>
-                        {type.emoji} {type.label}
-                      </option>
-                    ))}
-                  </select>
-                  {errors.loai && (
-                    <p className="mt-1 text-sm text-red-600">{errors.loai}</p>
-                  )}
-                </div>
 
-                {/* Trạng thái sức khỏe */}
-                <div>
-                  <label htmlFor="trangThai" className="block text-sm font-medium text-gray-700 mb-2">
-                    Trạng thái sức khỏe <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    id="trangThai"
-                    value={formData.trangThai}
-                    onChange={(e) => handleInputChange('trangThai', e.target.value)}
-                    className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      errors.trangThai ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                    disabled={isLoading}
-                  >
-                    {healthStatuses.map((status) => (
-                      <option key={status.value} value={status.value}>
-                        {status.emoji} {status.label}
-                      </option>
-                    ))}
-                  </select>
-                  {errors.trangThai && (
-                    <p className="mt-1 text-sm text-red-600">{errors.trangThai}</p>
-                  )}
-                </div>
 
                 {/* Chủ nhân */}
                 <div>
@@ -310,39 +201,19 @@ export default function ThemHoSoThuPage() {
                     <User className="h-4 w-4" />
                     Chủ nhân <span className="text-red-500">*</span>
                   </label>
-                  {loadingCustomers ? (
-                    <div className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-500">
-                      Đang tải danh sách khách hàng...
-                    </div>
-                  ) : (
-                    <select
-                      id="maKhachHang"
-                      value={formData.maKhachHang}
-                      onChange={(e) => handleInputChange('maKhachHang', e.target.value)}
-                      className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                        errors.maKhachHang ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                      disabled={isLoading}
-                    >
-                      <option value="">Chọn chủ nhân</option>
-                      {customers.map((customer) => (
-                        <option key={customer.maKhachHang} value={customer.maKhachHang}>
-                          {customer.tenKhachHang} - {customer.soDienThoai}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                  {errors.maKhachHang && (
-                    <p className="mt-1 text-sm text-red-600">{errors.maKhachHang}</p>
-                  )}
-                  {customers.length === 0 && !loadingCustomers && (
-                    <p className="mt-1 text-sm text-gray-500">
-                      Chưa có khách hàng nào. 
-                      <Link href="/admin/khach-hang/them-moi" className="text-blue-600 hover:underline">
-                        Thêm khách hàng mới
-                      </Link>
-                    </p>
-                  )}
+                  <CustomerSearch
+                    value={formData.maKhachHang}
+                    onChange={(customerId) => handleInputChange('maKhachHang', customerId)}
+                    error={errors.maKhachHang}
+                    disabled={isLoading}
+                    placeholder="Tìm kiếm khách hàng theo tên hoặc số điện thoại..."
+                  />
+                  <p className="mt-1 text-sm text-gray-500">
+                    Không tìm thấy khách hàng? 
+                    <Link href="/admin/khach-hang/them-moi" className="text-blue-600 hover:underline">
+                      Thêm khách hàng mới
+                    </Link>
+                  </p>
                 </div>
               </div>
             </div>
@@ -375,11 +246,34 @@ export default function ThemHoSoThuPage() {
                   )}
                 </div>
 
+                {/* Số ngày */}
+                <div>
+                  <label htmlFor="soNgay" className="block text-sm font-medium text-gray-700 mb-2">
+                    Số ngày theo dõi <span className="text-red-500">*</span>
+                  </label>
+                  <Input
+                    id="soNgay"
+                    type="number"
+                    min="0"
+                    value={formData.soNgay}
+                    onChange={(e) => handleInputChange('soNgay', e.target.value)}
+                    placeholder="Nhập số ngày theo dõi"
+                    className={errors.soNgay ? 'border-red-500 focus-visible:border-red-500' : ''}
+                    disabled={isLoading}
+                  />
+                  {errors.soNgay && (
+                    <p className="mt-1 text-sm text-red-600">{errors.soNgay}</p>
+                  )}
+                  <p className="mt-1 text-xs text-gray-500">
+                    Ngày tái khám sẽ được tự động tính: Ngày khám + Số ngày theo dõi
+                  </p>
+                </div>
+
                 {/* Ngày tái khám */}
                 <div>
                   <label htmlFor="ngayTaiKham" className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
                     <Clock className="h-4 w-4" />
-                    Ngày tái khám (tùy chọn)
+                    Ngày tái khám (tự động tính)
                   </label>
                   <Input
                     id="ngayTaiKham"
@@ -387,7 +281,11 @@ export default function ThemHoSoThuPage() {
                     value={formData.ngayTaiKham}
                     onChange={(e) => handleInputChange('ngayTaiKham', e.target.value)}
                     disabled={isLoading}
+                    className="bg-gray-50"
                   />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Có thể chỉnh sửa thủ công nếu cần
+                  </p>
                 </div>
 
                 {/* Trạng thái khám */}
@@ -404,7 +302,7 @@ export default function ThemHoSoThuPage() {
                     }`}
                     disabled={isLoading}
                   >
-                    {examStatuses.map((status) => (
+                    {EXAM_STATUSES.map((status) => (
                       <option key={status.value} value={status.value}>
                         {status.emoji} {status.label}
                       </option>
@@ -442,7 +340,7 @@ export default function ThemHoSoThuPage() {
                   Hủy
                 </Button>
               </Link>
-              <Button type="submit" disabled={isLoading || loadingCustomers}>
+              <Button type="submit" disabled={isLoading}>
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -464,10 +362,11 @@ export default function ThemHoSoThuPage() {
       <div className="rounded-lg bg-blue-50 p-4">
         <h4 className="text-sm font-medium text-blue-900 mb-2">Lưu ý:</h4>
         <ul className="text-sm text-blue-700 space-y-1">
-          <li>• Thông tin thú cưng và ngày khám đầu tiên là bắt buộc</li>
-          <li>• Tên thú nên đặt dễ nhớ và phù hợp với loại thú</li>
-          <li>• Lịch theo dõi đầu tiên sẽ được tạo cùng với hồ sơ thú</li>
-          <li>• Ngày tái khám và ghi chú là tùy chọn, có thể bổ sung sau</li>
+          <li>• Thông tin thú cưng, ngày khám và số ngày theo dõi là bắt buộc</li>
+          <li>• Tên thú nên đặt dễ nhớ và dễ phân biệt</li>
+          <li>• Ngày tái khám và số ngày theo dõi sẽ tự động đồng bộ với nhau</li>
+          <li>• Khi nhập số ngày, ngày tái khám sẽ được tự động tính</li>
+          <li>• Khi chọn ngày tái khám, số ngày theo dõi sẽ được tự động tính</li>
           <li>• Sau khi tạo thành công, bạn có thể thêm nhiều lịch khám khác</li>
         </ul>
       </div>

@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils'
 import { Calendar, User, Heart, QrCode } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import { useState } from 'react'
+import { useStatusDisplay, useAnimalType } from '@/hooks/useStatusManager'
 
 interface PetCardProps {
   pet: {
@@ -23,43 +24,7 @@ interface PetCardProps {
   showActions?: boolean
 }
 
-const statusConfig = {
-  KHOE_MANH: {
-    label: 'Khỏe mạnh',
-    className: 'bg-green-100 text-green-800',
-    icon: '💚',
-  },
-  THEO_DOI: {
-    label: 'Theo dõi',
-    className: 'bg-yellow-100 text-yellow-800',
-    icon: '👁️',
-  },
-  MANG_THAI: {
-    label: 'Mang thai',
-    className: 'bg-purple-100 text-purple-800',
-    icon: '🤰',
-  },
-  SAU_SINH: {
-    label: 'Sau sinh',
-    className: 'bg-blue-100 text-blue-800',
-    icon: '👶',
-  },
-  CACH_LY: {
-    label: 'Cách ly',
-    className: 'bg-red-100 text-red-800',
-    icon: '🚫',
-  },
-}
-
-const animalEmojis: Record<string, string> = {
-  CHO: '🐕',
-  MEO: '🐈',
-  BO: '🐄',
-  TRAU: '🐃',
-  HEO: '🐖',
-  DE: '🐐',
-  KHAC: '🐾',
-}
+// Removed inline configurations - now using status manager
 
 function QRCodeButton({ petId, petName }: { petId: string; petName: string }) {
   const [showQR, setShowQR] = useState(false)
@@ -101,8 +66,12 @@ function QRCodeButton({ petId, petName }: { petId: string; petName: string }) {
 }
 
 export function PetCard({ pet, variant = 'default', showActions = true }: PetCardProps) {
-  const status = statusConfig[pet.trangThai]
-  const emoji = animalEmojis[pet.loai] || '🐾'
+  const statusDisplay = useStatusDisplay()
+  const animalType = useAnimalType()
+  
+  const status = statusDisplay.getHealthDisplay(pet.trangThai)
+  const animalConfig = animalType.getConfig(pet.loai)
+  const emoji = animalConfig.emoji
 
   if (variant === 'compact') {
     return (
@@ -159,7 +128,7 @@ export function PetCard({ pet, variant = 'default', showActions = true }: PetCar
                 status.className
               )}
             >
-              <span>{status.icon}</span>
+              <span>{status.emoji}</span>
               {status.label}
             </span>
           </div>

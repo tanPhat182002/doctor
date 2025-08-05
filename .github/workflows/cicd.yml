@@ -1,0 +1,65 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Admin {
+  id        Int      @id @default(autoincrement())
+  name      String?
+  phone     String?  @
+  password  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime? @updatedAt
+}
+
+model Address {
+  maXa   String  @id @default(cuid())
+  tenXa  String?
+}
+
+model KhachHang {
+  maKhachHang   String     @id @default(cuid())
+  tenKhachHang  String
+  soDienThoai   String    
+  diaChi        String?
+  maXa          String?
+  tenXa            Address?   @relation(fields: [maXa], references: [maXa])
+
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime?  @updatedAt
+
+  hoSoThu       HoSoThu[]
+}
+
+model HoSoThu {
+  maHoSo        String        @id @default(cuid())
+  tenThu        String
+
+  maKhachHang   String
+  khachHang     KhachHang     @relation(fields: [maKhachHang], references: [maKhachHang])
+
+  lichTheoDoi   LichTheoDoi[]
+
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime?     @updatedAt
+}
+
+model LichTheoDoi {
+  id            Int       @id @default(autoincrement())
+  ngayKham      DateTime  @default(now())
+  soNgay        Int
+  ngayTaiKham   DateTime?
+  ghiChu        String?
+  trangThaiKham String
+
+  maHoSo        String
+  hoSoThu       HoSoThu   @relation(fields: [maHoSo], references: [maHoSo])
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime? @updatedAt
+}

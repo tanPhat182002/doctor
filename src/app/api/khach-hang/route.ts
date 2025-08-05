@@ -6,7 +6,8 @@ import { z } from 'zod'
 const createCustomerSchema = z.object({
   tenKhachHang: z.string().min(2, 'Tên khách hàng phải có ít nhất 2 ký tự').max(100, 'Tên khách hàng không được quá 100 ký tự'),
   soDienThoai: z.string().regex(/^(\+84|84|0)(3|5|7|8|9)[0-9]{8}$/, 'Số điện thoại không hợp lệ'),
-  diaChi: z.string().min(5, 'Địa chỉ phải có ít nhất 5 ký tự').max(200, 'Địa chỉ không được quá 200 ký tự').optional().nullable()
+  diaChi: z.string().min(5, 'Địa chỉ phải có ít nhất 5 ký tự').max(200, 'Địa chỉ không được quá 200 ký tự').optional().nullable(),
+  maXa: z.string().optional().nullable()
 })
 
 export async function POST(request: NextRequest) {
@@ -25,10 +26,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { tenKhachHang, soDienThoai, diaChi } = validationResult.data
+    const { tenKhachHang, soDienThoai, diaChi, maXa } = validationResult.data
 
     // Check if phone number already exists
-    const existingCustomer = await prisma.khachHang.findUnique({
+    const existingCustomer = await prisma.khachHang.findFirst({
       where: { soDienThoai }
     })
 
@@ -44,7 +45,8 @@ export async function POST(request: NextRequest) {
       data: {
         tenKhachHang,
         soDienThoai,
-        diaChi: diaChi || null
+        diaChi: diaChi || null,
+        maXa: maXa || null
       }
     })
 
@@ -80,16 +82,30 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '10')
     const search = searchParams.get('search') || ''
+    const maXa = searchParams.get('maXa') || ''
 
-    const where = search && search.length >= 2
-      ? {
-          OR: [
-            { tenKhachHang: { contains: search, mode: 'insensitive' as const } },
-            { soDienThoai: { contains: search } },
-            { diaChi: { contains: search, mode: 'insensitive' as const } },
-          ],
-        }
-      : {}
+    const where: {
+      OR?: Array<{
+        tenKhachHang?: { contains: string; mode: 'insensitive' }
+        soDienThoai?: { contains: string }
+        diaChi?: { contains: string; mode: 'insensitive' }
+      }>
+      maXa?: string
+    } = {}
+    
+    // Add search conditions
+    if (search && search.length >= 2) {
+      where.OR = [
+        { tenKhachHang: { contains: search, mode: 'insensitive' as const } },
+        { soDienThoai: { contains: search } },
+        { diaChi: { contains: search, mode: 'insensitive' as const } },
+      ]
+    }
+    
+    // Add maXa filter
+    if (maXa) {
+      where.maXa = maXa
+    }
 
     const [customers, total] = await Promise.all([
       prisma.khachHang.findMany({
@@ -99,8 +115,21 @@ export async function GET(request: NextRequest) {
             select: {
               maHoSo: true,
               tenThu: true,
-              loai: true,
-              trangThai: true,
+              lichTheoDoi: {
+                select: {
+                  ngayTaiKham: true,
+                },
+                orderBy: {
+                  ngayKham: 'desc',
+                },
+                take: 1,
+              },
+            },
+          },
+          xa: {
+            select: {
+              maXa: true,
+              tenXa: true,
             },
           },
         },

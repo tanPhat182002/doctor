@@ -274,7 +274,7 @@ function LichKhamContent() {
               <div className="text-gray-500">Đang tải...</div>
             </div>
           ) : (
-            <ScheduleTable schedules={schedules} pagination={pagination} />
+            <ScheduleTable data={schedules} pagination={pagination} />
           )}
         </div>
       </div>

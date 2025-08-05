@@ -11,48 +11,57 @@ datasource db {
 model Admin {
   id        Int      @id @default(autoincrement())
   name      String?
-  phone     String?
+  phone     String?  
   password  String?
   createdAt DateTime @default(now())
   updatedAt DateTime? @updatedAt
 }
 
-model KhachHang {
-  maKhachHang  String     @id @default(cuid())
-  tenKhachHang String
-  soDienThoai  String     @unique
-  diaChi       String?
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime?   @updatedAt
+model Address {
+  maXa   String  @id @default(cuid())
+  tenXa  String?
+  khachHangs KhachHang[]  // Added this line - the opposite relation field
 
-  hoSoThu      HoSoThu[]  // Một khách có nhiều hồ sơ thú
+}
+
+model KhachHang {
+  maKhachHang   String     @id @default(cuid())
+  tenKhachHang  String
+  soDienThoai   String    
+  diaChi        String?
+  maXa          String?
+  xa            Address?   @relation(fields: [maXa], references: [maXa])
+
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime?  @updatedAt
+
+  hoSoThu       HoSoThu[]
 }
 
 model HoSoThu {
-  maHoSo       String        @id @default(cuid())
-  tenThu       String
-  loai         String
-  trangThai    String
+  maHoSo        String        @id @default(cuid())
+  tenThu        String
 
-  maKhachHang  String
-  khachHang    KhachHang     @relation(fields: [maKhachHang], references: [maKhachHang])
+  maKhachHang   String
+  khachHang     KhachHang     @relation(fields: [maKhachHang], references: [maKhachHang])
 
-  lichTheoDoi  LichTheoDoi[] // Một thú có nhiều lịch theo dõi
+  lichTheoDoi   LichTheoDoi[]
 
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime?     @updatedAt
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime?     @updatedAt
 }
 
 model LichTheoDoi {
-  id             Int       @id @default(autoincrement())
-  ngayKham       DateTime  @default(now())
-  ngayTaiKham    DateTime?
-  ghiChu         String?
-  trangThaiKham  String
+  id            Int       @id @default(autoincrement())
+  ngayKham      DateTime  @default(now())
+  soNgay        Int
+  ngayTaiKham   DateTime?
+  ghiChu        String?
+  trangThaiKham String
 
-  maHoSo         String
-  hoSoThu        HoSoThu   @relation(fields: [maHoSo], references: [maHoSo])
+  maHoSo        String
+  hoSoThu       HoSoThu   @relation(fields: [maHoSo], references: [maHoSo])
 
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime?  @updatedAt
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime? @updatedAt
 }

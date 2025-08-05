@@ -8,11 +8,12 @@ const createScheduleSchema = z.object({
     const parsedDate = new Date(date)
     return !isNaN(parsedDate.getTime())
   }, { message: 'Ngày khám không hợp lệ' }),
+  soNgay: z.number().min(1, { message: 'Số ngày phải lớn hơn 0' }),
   ngayTaiKham: z.string().refine((date) => {
     const parsedDate = new Date(date)
     return !isNaN(parsedDate.getTime())
   }, { message: 'Ngày tái khám không hợp lệ' }).optional(),
-  trangThaiKham: z.enum(['CHO_KHAM', 'DANG_KHAM', 'HOAN_THANH', 'HUY'], { message: 'Trạng thái khám không hợp lệ' }),
+  trangThaiKham: z.string().min(1, { message: 'Trạng thái khám không được để trống' }),
   ghiChu: z.string().nullable().optional()
 })
 
@@ -56,6 +57,7 @@ export async function POST(
       data: {
         maHoSo: existingPet.maHoSo,
         ngayKham,
+        soNgay: validatedData.soNgay,
         ngayTaiKham,
         trangThaiKham: validatedData.trangThaiKham,
         ghiChu: validatedData.ghiChu || null
@@ -65,7 +67,6 @@ export async function POST(
           select: {
             maHoSo: true,
             tenThu: true,
-            loai: true
           }
         }
       }
@@ -114,6 +115,7 @@ export async function GET(
     
     // Get all schedules for this pet
     const schedules = await prisma.lichTheoDoi.findMany({
+      
       where: { maHoSo: maHoSo },
       orderBy: {
         ngayKham: 'desc'
@@ -123,10 +125,26 @@ export async function GET(
           select: {
             maHoSo: true,
             tenThu: true,
-            loai: true
-          }
-        }
-      }
+          },
+          include: {
+            khachHang: {
+              select: {
+                maKhachHang: true,
+                tenKhachHang: true,
+                soDienThoai: true,
+              },
+              include: {
+                xa: {
+                  select: {
+                    maXa: true,
+                    tenXa: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     })
     
     return NextResponse.json({

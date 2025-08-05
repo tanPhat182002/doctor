@@ -8,7 +8,8 @@ const createScheduleSchema = z.object({
   ngayKham: z.string().transform((str) => new Date(str)),
   ngayTaiKham: z.string().transform((str) => new Date(str)).nullable().optional(),
   ghiChu: z.string().nullable().optional(),
-  trangThaiKham: z.enum(['CHUA_KHAM', 'DA_KHAM', 'HUY', 'HOAN'])
+  trangThaiKham: z.enum(['CHUA_KHAM', 'DA_KHAM', 'HUY', 'HOAN']),
+  soNgay: z.number().optional().default(0)
 })
 
 // Schema for getting examination schedules
@@ -46,7 +47,8 @@ export async function POST(request: NextRequest) {
         ngayKham: validatedData.ngayKham,
         ngayTaiKham: validatedData.ngayTaiKham || null,
         ghiChu: validatedData.ghiChu || null,
-        trangThaiKham: validatedData.trangThaiKham
+        trangThaiKham: validatedData.trangThaiKham,
+        soNgay: validatedData.soNgay || 0
       },
       include: {
         hoSoThu: {

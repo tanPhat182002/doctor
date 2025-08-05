@@ -4,9 +4,7 @@ import { prisma } from '@/lib/prisma'
 
 // Schema for updating pet
 const updatePetSchema = z.object({
-  tenThu: z.string().min(1, 'Tên thú cưng không được để trống'),
-  loai: z.string().min(1, 'Loại thú cưng không được để trống'),
-  trangThai: z.string().min(1, 'Trạng thái không được để trống')
+  tenThu: z.string().min(1, 'Tên thú cưng không được để trống')
 })
 
 // GET - Get pet details by maHoSo
@@ -25,13 +23,21 @@ export async function GET(
             maKhachHang: true,
             tenKhachHang: true,
             soDienThoai: true,
-            diaChi: true
+            diaChi: true,
+            xa: {
+              select: {
+                maXa: true,
+                tenXa: true
+              }
+            }
           }
         },
+      
         lichTheoDoi: {
           select: {
             id: true,
             ngayKham: true,
+            soNgay: true,
             ngayTaiKham: true,
             trangThaiKham: true,
             ghiChu: true
@@ -91,9 +97,7 @@ export async function PUT(
     const updatedPet = await prisma.hoSoThu.update({
       where: { maHoSo },
       data: {
-        tenThu: validatedData.tenThu,
-        loai: validatedData.loai,
-        trangThai: validatedData.trangThai
+        tenThu: validatedData.tenThu
       },
       include: {
         khachHang: {
@@ -101,7 +105,13 @@ export async function PUT(
             maKhachHang: true,
             tenKhachHang: true,
             soDienThoai: true,
-            diaChi: true
+            diaChi: true,
+            xa: {
+              select: {
+                maXa: true,
+                tenXa: true
+              }
+            }
           }
         },
         lichTheoDoi: {

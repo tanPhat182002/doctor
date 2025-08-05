@@ -142,7 +142,8 @@ export default function DashboardPage() {
     }
   }
 
-  const getPetIcon = (loai: string) => {
+  const getPetIcon = (loai: string | null | undefined) => {
+    if (!loai) return '🐾'
     switch (loai.toLowerCase()) {
       case 'cho': return '🐕'
       case 'meo': return '🐱'

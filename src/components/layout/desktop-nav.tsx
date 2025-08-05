@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, Users, FileText, Calendar, BarChart3, Settings } from 'lucide-react'
+import { Home, Users, FileText, Calendar, BarChart3, Settings, MapPin } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navItems = [
@@ -10,6 +10,7 @@ const navItems = [
   { href: '/admin/khach-hang', icon: Users, label: 'Khách hàng' },
   { href: '/admin/ho-so-thu', icon: FileText, label: 'Hồ sơ thú' },
   { href: '/admin/lich-kham', icon: Calendar, label: 'Lịch khám' },
+  { href: '/admin/xa', icon: MapPin, label: 'Quản lý xã' },
   { href: '/admin/bao-cao', icon: BarChart3, label: 'Báo cáo' },
   { href: '/admin/cai-dat', icon: Settings, label: 'Cài đặt' },
 ]

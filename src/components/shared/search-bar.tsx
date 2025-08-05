@@ -25,23 +25,30 @@ export function SearchBar({
   const debouncedSearchTerm = useDebounce(searchTerm, 150)
 
   useEffect(() => {
-    const params = new URLSearchParams(searchParams.toString())
+    const currentSearch = searchParams.get('search') || ''
     
-    // Only search if term has at least 2 characters or is empty (to clear)
-    if (debouncedSearchTerm.length >= 2 || debouncedSearchTerm === '') {
-      setIsSearching(true)
+    // Only update URL if the search term actually changed
+    if (debouncedSearchTerm !== currentSearch) {
+      const params = new URLSearchParams(searchParams.toString())
       
-      if (debouncedSearchTerm) {
-        params.set('search', debouncedSearchTerm)
-      } else {
-        params.delete('search')
+      // Only search if term has at least 2 characters or is empty (to clear)
+      if (debouncedSearchTerm.length >= 2 || debouncedSearchTerm === '') {
+        setIsSearching(true)
+        
+        if (debouncedSearchTerm) {
+          params.set('search', debouncedSearchTerm)
+        } else {
+          params.delete('search')
+        }
+        
+        params.set('page', '1') // Reset to first page when searching
+        
+        // Use replace instead of push to avoid navigation issues
+        router.replace(`?${params.toString()}`)
+        
+        // Simulate search completion
+        setTimeout(() => setIsSearching(false), 100)
       }
-      
-      params.set('page', '1') // Reset to first page when searching
-      router.push(`?${params.toString()}`)
-      
-      // Simulate search completion
-      setTimeout(() => setIsSearching(false), 100)
     }
   }, [debouncedSearchTerm, router, searchParams])
 

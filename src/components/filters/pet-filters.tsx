@@ -13,27 +13,19 @@ import {
   DropdownMenuCheckboxItem,
 } from '@/components/ui/dropdown-menu'
 import { Badge } from '@/components/ui/badge'
+import { useHealthStatus, useAnimalType } from '@/hooks/useStatusManager'
 
-const statusOptions = [
-  { value: 'KHOE_MANH', label: 'Khỏe mạnh', emoji: '💚' },
-  { value: 'THEO_DOI', label: 'Theo dõi', emoji: '⚠️' },
-  { value: 'MANG_THAI', label: 'Mang thai', emoji: '🤰' },
-  { value: 'SAU_SINH', label: 'Sau sinh', emoji: '👶' },
-  { value: 'CACH_LY', label: 'Cách ly', emoji: '🚨' },
-]
-
-const typeOptions = [
-  { value: 'CHO', label: 'Chó', emoji: '🐕' },
-  { value: 'MEO', label: 'Mèo', emoji: '🐱' },
-  { value: 'CHIM', label: 'Chim', emoji: '🐦' },
-  { value: 'CA', label: 'Cá', emoji: '🐠' },
-  { value: 'THO', label: 'Thỏ', emoji: '🐰' },
-  { value: 'HAMSTER', label: 'Hamster', emoji: '🐹' },
-]
+// Removed inline options - now using status manager
 
 export function PetFilters() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const healthStatus = useHealthStatus()
+  const animalType = useAnimalType()
+  
+  const statusOptions = healthStatus.getOptions()
+  const typeOptions = animalType.getOptions()
+  
   const [selectedStatus, setSelectedStatus] = useState<string[]>(
     searchParams.get('status')?.split(',').filter(Boolean) || []
   )

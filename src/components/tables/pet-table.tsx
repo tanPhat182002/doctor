@@ -1,18 +1,11 @@
 'use client'
 
 import Link from 'next/link'
-import { Calendar, Edit, Eye, MoreHorizontal, Phone, Trash2, QrCode } from 'lucide-react'
+import { Calendar, Edit, Eye, MoreHorizontal, Phone, Trash2, QrCode, MapPin, User } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { Card, CardContent } from '@/components/ui/card'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,77 +14,12 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { formatDate, formatPhoneNumber } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
-
-interface Pet {
-  maHoSo: string
-  tenThu: string
-  loai: string
-  trangThai: string
-  createdAt: Date
-  khachHang: {
-    maKhachHang: string
-    tenKhachHang: string
-    soDienThoai: string
-    diaChi: string | null
-  }
-  lichTheoDoi: {
-    id: number
-    ngayKham: Date
-    ngayTaiKham: Date | null
-    trangThaiKham: string
-  }[]
-}
-
-interface PetTableProps {
-  pets: Pet[]
-  pagination: {
-    total: number
-    page: number
-    limit: number
-    totalPages: number
-  }
-}
+import type { PetTableData, PetTableProps } from '@/types'
 
 // Status configuration
-const statusConfig = {
-  KHOE_MANH: {
-    label: 'Khỏe mạnh',
-    className: 'bg-green-100 text-green-800',
-    emoji: '💚'
-  },
-  THEO_DOI: {
-    label: 'Theo dõi',
-    className: 'bg-yellow-100 text-yellow-800',
-    emoji: '⚠️'
-  },
-  MANG_THAI: {
-    label: 'Mang thai',
-    className: 'bg-pink-100 text-pink-800',
-    emoji: '🤰'
-  },
-  SAU_SINH: {
-    label: 'Sau sinh',
-    className: 'bg-purple-100 text-purple-800',
-    emoji: '👶'
-  },
-  CACH_LY: {
-    label: 'Cách ly',
-    className: 'bg-red-100 text-red-800',
-    emoji: '🚨'
-  }
-}
+// Status config removed as trangThai field doesn't exist in schema
 
-// Animal type emojis
-const animalEmojis: { [key: string]: string } = {
-  CHO: '🐕',
-  MEO: '🐱',
-  CHIM: '🐦',
-  CA: '🐠',
-  THO: '🐰',
-  HAMSTER: '🐹'
-}
-
-function QRCodeTableButton({ petId, petName }: { petId: string; petName: string }) {
+function QRCodeButton({ petId, petName }: { petId: string; petName: string }) {
   const [showQR, setShowQR] = useState(false)
   const profileUrl = typeof window !== 'undefined' ? `${window.location.origin}/admin/ho-so-thu/${petId}` : ''
 
@@ -134,144 +62,172 @@ function QRCodeTableButton({ petId, petName }: { petId: string; petName: string 
   )
 }
 
-export function PetTable({ pets, pagination }: PetTableProps) {
+export function PetTable({ data: pets, pagination }: PetTableProps) {
   const router = useRouter()
+  
+  if (pets.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+          <Calendar className="h-8 w-8 text-gray-400" />
+        </div>
+        <h3 className="text-lg font-medium text-gray-900 mb-2">Chưa có hồ sơ thú cưng</h3>
+        <p className="text-gray-500 mb-6">Bắt đầu bằng cách thêm hồ sơ thú cưng đầu tiên</p>
+        <Link href="/admin/ho-so-thu/them-moi">
+          <Button>
+            <Calendar className="mr-2 h-4 w-4" />
+            Thêm hồ sơ thú
+          </Button>
+        </Link>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-4" suppressHydrationWarning>
-      <Table>
-        <TableHeader>
-          <TableRow>
-         
-            <TableHead>Tên thú</TableHead>
-            <TableHead>Loại</TableHead>
-            <TableHead>Trạng thái</TableHead>
-            <TableHead className="w-[50px]">Mã QR</TableHead>
-            <TableHead>Chủ nhân</TableHead>
-            <TableHead>Liên hệ</TableHead>
-            <TableHead>Khám gần nhất</TableHead>
-     
-            <TableHead className="w-[70px]"></TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {pets.map((pet) => {
-            const status = statusConfig[pet.trangThai as keyof typeof statusConfig] || {
-              label: pet.trangThai,
-              className: 'bg-gray-100 text-gray-800',
-              emoji: '❓'
-            }
-            const animalEmoji = animalEmojis[pet.loai] || '🐾'
-            const lastCheckup = pet.lichTheoDoi[0]
+      {/* Cards Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {pets.map((pet: PetTableData) => {
+          const lastCheckup = pet.lichTheoDoi[0]
+          
+          // Kiểm tra ngày tái khám trong 3 ngày tới
+          const isUpcomingRecheck = lastCheckup?.ngayTaiKham ? (() => {
+            const recheckDate = new Date(lastCheckup.ngayTaiKham)
+            const today = new Date()
+            today.setHours(0, 0, 0, 0) // Reset time to start of day
+            
+            const threeDaysFromNow = new Date(today)
+            threeDaysFromNow.setDate(today.getDate() + 3)
+            threeDaysFromNow.setHours(23, 59, 59, 999) // End of the 3rd day
+            
+            const recheckDateOnly = new Date(recheckDate)
+            recheckDateOnly.setHours(0, 0, 0, 0) // Reset time to start of day
+            
+            return recheckDateOnly >= today && recheckDateOnly <= threeDaysFromNow
+          })() : false
+          
+          const cardStyle = isUpcomingRecheck 
+            ? 'bg-red-50 border-red-200 hover:bg-red-100' 
+            : 'bg-white border-gray-200 hover:bg-gray-50'
 
-            return (
-              
-              <TableRow 
-                key={pet.maHoSo} 
-                className="cursor-pointer hover:bg-gray-50"
-                onClick={() => router.push(`/admin/ho-so-thu/${pet.maHoSo}`)}
-              >
-                  
-                <TableCell>
+          return (
+            <Card 
+              key={pet.maHoSo} 
+              className={`cursor-pointer hover:shadow-md transition-all border ${cardStyle}`}
+              onClick={() => router.push(`/admin/ho-so-thu/${pet.maHoSo}`)}
+            >
+              <CardContent className="p-4">
+                {/* Header */}
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-lg text-gray-900 mb-1">
+                      {pet.tenThu}
+                    </h3>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <QRCodeButton petId={pet.maHoSo} petName={pet.tenThu} />
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          className="h-8 w-8 p-0"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <span className="sr-only">Mở menu</span>
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem asChild>
+                          <Link href={`/admin/ho-so-thu/${pet.maHoSo}`}>
+                            <Eye className="mr-2 h-4 w-4" />
+                            Xem chi tiết
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link href={`/admin/ho-so-thu/${pet.maHoSo}/chinh-sua`}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Chỉnh sửa
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link href={`/admin/lich-kham/them-moi?petId=${pet.maHoSo}`}>
+                            <Calendar className="mr-2 h-4 w-4" />
+                            Đặt lịch khám
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="text-red-600">
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Xóa
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
+
+                {/* Owner Info */}
+                <div className="space-y-2 mb-4">
                   <div className="flex items-center gap-2">
-                    <span className="text-lg">{animalEmoji}</span>
-                    <span className="font-medium">{pet.tenThu}</span>
+                    <User className="h-4 w-4 text-gray-400" />
+                    <span className="font-medium text-gray-900">
+                      {pet.khachHang.tenKhachHang}
+                    </span>
                   </div>
-                </TableCell>
-                <TableCell>
-                  <span className="capitalize">{pet.loai.toLowerCase()}</span>
-                </TableCell>
-                <TableCell>
-                  <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium ${status.className}`}>
-                    <span>{status.emoji}</span>
-                    {status.label}
-                  </span>
-                </TableCell>
-                <TableCell>
-                  <QRCodeTableButton petId={pet.maHoSo} petName={pet.tenThu} />
-                </TableCell>
-                <TableCell>
-                  <div>
-                    <div className="font-medium">{pet.khachHang.tenKhachHang}</div>
-                    {pet.khachHang.diaChi && (
-                      <div className="text-sm text-gray-500 truncate max-w-[150px]">
-                        {pet.khachHang.diaChi}
-                      </div>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-1 text-sm">
-                    <Phone className="h-3 w-3" />
+                  
+                  <div className="flex items-center gap-2">
+                    <Phone className="h-4 w-4 text-gray-400" />
                     <Link 
                       href={`tel:${pet.khachHang.soDienThoai}`}
-                      className="text-blue-600 hover:text-blue-800"
+                      className="text-blue-600 hover:text-blue-800 text-sm"
+                      onClick={(e) => e.stopPropagation()}
                     >
                       {formatPhoneNumber(pet.khachHang.soDienThoai)}
                     </Link>
                   </div>
-                </TableCell>
-                <TableCell>
-                  {lastCheckup ? (
-                    <div className="text-sm">
-                      <div className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
-                        {formatDate(lastCheckup.ngayKham)}
-                      </div>
-                      {lastCheckup.ngayTaiKham && (
-                        <div className="text-xs text-gray-500">
-                          Tái khám: {formatDate(lastCheckup.ngayTaiKham)}
-                        </div>
-                      )}
+                  
+                  {pet.khachHang.diaChi && (
+                    <div className="flex items-start gap-2">
+                      <MapPin className="h-4 w-4 text-gray-400 mt-0.5" />
+                      <span className="text-sm text-gray-600 line-clamp-2">
+                        {pet.khachHang.diaChi}
+                      </span>
                     </div>
-                  ) : (
-                    <span className="text-sm text-gray-400">Chưa khám</span>
                   )}
-                </TableCell>
-             
-              
-                <TableCell>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        className="h-8 w-8 p-0"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <span className="sr-only">Mở menu</span>
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem asChild>
-                        <Link href={`/admin/ho-so-thu/${pet.maHoSo}`}>
-                          <Eye className="mr-2 h-4 w-4" />
-                          Xem chi tiết
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link href={`/admin/ho-so-thu/${pet.maHoSo}/chinh-sua`}>
-                          <Edit className="mr-2 h-4 w-4" />
-                          Chỉnh sửa
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link href={`/admin/lich-kham/them-moi?petId=${pet.maHoSo}`}>
-                          <Calendar className="mr-2 h-4 w-4" />
-                          Đặt lịch khám
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="text-red-600">
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Xóa
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
-              </TableRow>
-            )
-          })}
-        </TableBody>
-      </Table>
+                </div>
+
+                {/* Last Checkup */}
+                <div className="border-t pt-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">
+                      Khám gần nhất
+                    </span>
+                    {lastCheckup ? (
+                      <div className="text-right">
+                        <div className="flex items-center gap-1 text-sm text-gray-900">
+                          <Calendar className="h-3 w-3" />
+                          {formatDate(lastCheckup.ngayKham)}
+                        </div>
+                        {lastCheckup.ngayTaiKham && (
+                          <div className={`text-xs mt-1 ${
+                            isUpcomingRecheck ? 'text-red-600 font-semibold' : 'text-blue-600'
+                          }`}>
+                            Tái khám: {formatDate(lastCheckup.ngayTaiKham)}
+                            {isUpcomingRecheck && (
+                              <span className="ml-1 text-red-500">⚠️</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-sm text-gray-400">Chưa khám</span>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )
+        })}
+      </div>
 
       {/* Pagination */}
       <div className="flex items-center justify-between px-2" suppressHydrationWarning>

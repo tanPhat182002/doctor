@@ -1,66 +1,76 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Save, User, Phone, MapPin, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
+import { Select, type SelectOption } from '@/components/ui/select'
+import type { CustomerFormData, CustomerFormErrors } from '@/types'
+import { FormValidator } from '@/lib/validation'
 
-interface FormData {
-  tenKhachHang: string
-  soDienThoai: string
-  diaChi: string
+interface Address {
+  maXa: string
+  tenXa: string | null
 }
 
-interface FormErrors {
-  tenKhachHang?: string
-  soDienThoai?: string
-  diaChi?: string
-  submit?: string
-}
-
-export default function ThemKhachHangPage() {
+function ThemKhachHangContent() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
-  const [formData, setFormData] = useState<FormData>({
+  const [loadingAddresses, setLoadingAddresses] = useState(true)
+  const [addressOptions, setAddressOptions] = useState<SelectOption[]>([])
+  const [formData, setFormData] = useState<CustomerFormData>({
     tenKhachHang: '',
     soDienThoai: '',
-    diaChi: ''
+    diaChi: '',
+    maXa: ''
   })
-  const [errors, setErrors] = useState<FormErrors>({})
+  const [errors, setErrors] = useState<CustomerFormErrors>({})
 
-  const validateForm = (): boolean => {
-    const newErrors: FormErrors = {}
-
-    // Validate tên khách hàng
-    if (!formData.tenKhachHang.trim()) {
-      newErrors.tenKhachHang = 'Tên khách hàng là bắt buộc'
-    } else if (formData.tenKhachHang.trim().length < 2) {
-      newErrors.tenKhachHang = 'Tên khách hàng phải có ít nhất 2 ký tự'
-    }
-
-    // Validate số điện thoại
-    if (!formData.soDienThoai.trim()) {
-      newErrors.soDienThoai = 'Số điện thoại là bắt buộc'
-    } else {
-      const phoneRegex = /^(\+84|84|0)(3|5|7|8|9)[0-9]{8}$/
-      if (!phoneRegex.test(formData.soDienThoai.replace(/\s/g, ''))) {
-        newErrors.soDienThoai = 'Số điện thoại không hợp lệ'
+  // Load addresses
+  useEffect(() => {
+    const fetchAddresses = async () => {
+      try {
+        const response = await fetch('/api/xa?limit=1000') // Get all addresses
+        const data = await response.json()
+        if (data.success) {
+          // Convert to SelectOption format
+          const options: SelectOption[] = data.data.map((addr: Address) => ({
+            value: addr.maXa,
+            label: addr.tenXa || 'Không có tên'
+          }))
+          setAddressOptions(options)
+        }
+      } catch (error) {
+        console.error('Error fetching addresses:', error)
+      } finally {
+        setLoadingAddresses(false)
       }
     }
 
-    // Validate địa chỉ (optional but if provided, should have minimum length)
-    if (formData.diaChi.trim() && formData.diaChi.trim().length < 5) {
-      newErrors.diaChi = 'Địa chỉ phải có ít nhất 5 ký tự'
-    }
+    fetchAddresses()
+  }, [])
 
+  // Auto-fill maXa from URL parameter
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search)
+      const maXaParam = urlParams.get('maXa')
+      if (maXaParam) {
+        setFormData(prev => ({ ...prev, maXa: maXaParam }))
+      }
+    }
+  }, [])
+
+  const validateForm = (): boolean => {
+    const newErrors = FormValidator.validateCustomer(formData)
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
-  const handleInputChange = (field: keyof FormData, value: string) => {
+  const handleInputChange = (field: keyof CustomerFormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
     // Clear error when user starts typing
     if (errors[field]) {
@@ -87,7 +97,8 @@ export default function ThemKhachHangPage() {
         body: JSON.stringify({
           tenKhachHang: formData.tenKhachHang.trim(),
           soDienThoai: formData.soDienThoai.replace(/\s/g, ''),
-          diaChi: formData.diaChi.trim() || null
+          diaChi: formData.diaChi.trim() || null,
+          maXa: formData.maXa || null
         })
       })
 
@@ -208,6 +219,26 @@ export default function ThemKhachHangPage() {
                     <p className="mt-1 text-sm text-red-600">{errors.diaChi}</p>
                   )}
                 </div>
+
+                {/* Xã/Phường */}
+                 <div>
+                   <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                     <MapPin className="h-4 w-4" />
+                     Xã/Phường
+                   </label>
+                   <Select
+                      value={formData.maXa}
+                      onValueChange={(value) => handleInputChange('maXa', value)}
+                      placeholder="Chọn xã/phường"
+                      options={addressOptions}
+                      disabled={isLoading}
+                      loading={loadingAddresses}
+                      error={!!errors.maXa}
+                    />
+                   {errors.maXa && (
+                     <p className="mt-1 text-sm text-red-600">{errors.maXa}</p>
+                   )}
+                 </div>
               </div>
             </div>
 
@@ -249,5 +280,13 @@ export default function ThemKhachHangPage() {
         </ul>
       </div>
     </div>
+  )
+}
+
+export default function ThemKhachHangPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ThemKhachHangContent />
+    </Suspense>
   )
 }
