@@ -6,6 +6,7 @@ import { SessionProvider } from 'next-auth/react'
 import { Toaster } from 'react-hot-toast'
 import { useState, useEffect } from 'react'
 import { getQueryClient, performanceUtils, backgroundSync } from '@/lib/query-client'
+import { ServiceWorkerManager } from '@/components/service-worker-manager'
 
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -66,7 +67,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
             },
           }}
         />
-
+        <ServiceWorkerManager />
       </QueryClientProvider>
     </SessionProvider>
   )
