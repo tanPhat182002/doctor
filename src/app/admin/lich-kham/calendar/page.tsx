@@ -10,6 +10,7 @@ import Link from 'next/link'
 interface Schedule {
   id: number
   ngayKham: Date
+  soNgay: number
   ngayTaiKham: Date | null
   ghiChu: string | null
   trangThaiKham: string

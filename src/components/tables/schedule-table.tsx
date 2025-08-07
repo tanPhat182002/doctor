@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { MoreHorizontal, Edit, Trash2, Eye, Calendar, Phone, User } from 'lucide-react'
+import { MoreHorizontal, Eye, Calendar, Phone, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Table,
@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { formatDate, formatPhoneNumber } from '@/lib/utils'
 import { useExamStatus } from '@/hooks/useStatusManager'
+import { DeleteScheduleModal, EditScheduleModal } from '@/components/modals/edit-schedule-modal'
 
 import type { ScheduleTableData, ScheduleTableProps, ExamStatus } from '@/types'
 import { ANIMAL_EMOJIS } from '@/types/constants'
@@ -131,10 +132,23 @@ export function ScheduleTable({ data: schedules, pagination }: ScheduleTableProp
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
-                        <Link href={`/admin/lich-kham/${schedule.id}/chinh-sua`}>
-                          <Edit className="mr-2 h-4 w-4" />
-                          Chỉnh sửa
-                        </Link>
+                        <div className="w-full">
+                          <EditScheduleModal 
+                             schedule={{
+                                id: schedule.id,
+                                ngayKham: schedule.ngayKham,
+                                ngayTaiKham: schedule.ngayTaiKham,
+                                soNgay: schedule.soNgay,
+                                trangThaiKham: schedule.trangThaiKham as ExamStatus,
+                                ghiChu: schedule.ghiChu,
+                                maHoSo: schedule.hoSoThu.maHoSo
+                              }}
+                            onSuccess={() => {
+                              // Refresh the page to show updated data
+                              window.location.reload()
+                            }}
+                          />
+                        </div>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
                         <Link href={`/admin/lich-kham/them-moi?petId=${schedule.hoSoThu.maHoSo}`}>
@@ -142,9 +156,24 @@ export function ScheduleTable({ data: schedules, pagination }: ScheduleTableProp
                           Thêm lịch mới
                         </Link>
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="text-red-600">
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Xóa
+                      <DropdownMenuItem asChild>
+                        <div className="w-full">
+                          <DeleteScheduleModal 
+                             schedule={{
+                                id: schedule.id,
+                                ngayKham: schedule.ngayKham,
+                                ngayTaiKham: schedule.ngayTaiKham,
+                                soNgay: schedule.soNgay,
+                                trangThaiKham: schedule.trangThaiKham as ExamStatus,
+                                ghiChu: schedule.ghiChu,
+                                maHoSo: schedule.hoSoThu.maHoSo
+                              }}
+                            onSuccess={() => {
+                              // Refresh the page to show updated data
+                              window.location.reload()
+                            }}
+                          />
+                        </div>
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>

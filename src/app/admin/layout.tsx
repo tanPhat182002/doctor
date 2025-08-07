@@ -1,6 +1,7 @@
 import { DesktopNav } from '@/components/layout/desktop-nav'
 import { MobileNav } from '@/components/layout/mobile-nav'
 import { Header } from '@/components/layout/header'
+import { PageTransition } from '@/components/layout/page-transition'
 
 export default function DashboardLayout({
   children,
@@ -8,7 +9,7 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100/50">
       {/* Desktop Navigation */}
       <div className="hidden lg:block">
         <DesktopNav />
@@ -17,10 +18,12 @@ export default function DashboardLayout({
       {/* Header */}
       <Header />
 
-      {/* Main Content */}
-      <main className="lg:ml-64">
+      {/* Main Content with Page Transitions */}
+      <main className="lg:ml-64 relative overflow-hidden">
         <div className="container mx-auto px-4 py-6 pb-20 lg:pb-6">
-          {children}
+          <PageTransition>
+            {children}
+          </PageTransition>
         </div>
       </main>
 

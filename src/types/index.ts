@@ -39,6 +39,7 @@ export interface Schedule {
   ngayTaiKham: Date | null
   trangThaiKham: ExamStatus
   ghiChu: string | null
+  maHoSo: string
   hoSoThu: Pet
 }
 
@@ -181,6 +182,7 @@ export interface CustomerTableData {
 export interface ScheduleTableData {
   id: number
   ngayKham: Date
+  soNgay: number
   ngayTaiKham: Date | null
   ghiChu: string | null
   trangThaiKham: string

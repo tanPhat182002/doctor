@@ -87,7 +87,7 @@ export default function EditCustomerPage({ params }: EditCustomerPageProps) {
         const addressResponse = await fetch('/api/xa?limit=1000')
         if (addressResponse.ok) {
           const addressData = await addressResponse.json()
-          const options: SelectOption[] = addressData.addresses.map((addr: Address) => ({
+          const options: SelectOption[] = addressData.data.map((addr: Address) => ({
             value: addr.maXa,
             label: addr.tenXa || 'Không có tên'
           }))
@@ -151,8 +151,8 @@ export default function EditCustomerPage({ params }: EditCustomerPageProps) {
         return
       }
 
-      // Redirect back to customer list
-      router.push(`/admin/khach-hang?success=updated&id=${maKhachHang}`)
+      // Redirect back to customer detail page
+      router.push(`/admin/khach-hang/${maKhachHang}?success=updated`)
     } catch (error) {
       console.error('Error updating customer:', error)
       setErrors({ submit: 'Có lỗi xảy ra khi kết nối đến server' })
@@ -184,7 +184,7 @@ export default function EditCustomerPage({ params }: EditCustomerPageProps) {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Link href="/admin/khach-hang">
+        <Link href={`/admin/khach-hang/${customer.maKhachHang}`}>
           <Button variant="outline" size="sm">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Quay lại
@@ -312,7 +312,7 @@ export default function EditCustomerPage({ params }: EditCustomerPageProps) {
 
             {/* Form Actions */}
             <div className="flex items-center justify-end gap-3">
-              <Link href="/admin/khach-hang">
+              <Link href={`/admin/khach-hang/${customer.maKhachHang}`}>
                 <Button type="button" variant="outline" disabled={isLoading}>
                   Hủy
                 </Button>

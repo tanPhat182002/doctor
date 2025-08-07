@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import toast from 'react-hot-toast'
 import { ArrowLeft, Save, MapPin, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -59,12 +60,18 @@ export default function ChinhSuaXaPage({ params }: { params: Promise<{ maXa: str
             tenXa: data.data.tenXa || '',
           })
         } else {
-          alert('Không tìm thấy thông tin xã')
+          toast.error('Không tìm thấy thông tin xã', {
+            duration: 4000,
+            icon: '❌'
+          })
           router.push('/admin/xa')
         }
       } catch (error) {
         console.error('Error fetching address:', error)
-        alert('Có lỗi xảy ra khi tải thông tin xã')
+        toast.error('Có lỗi xảy ra khi tải thông tin xã', {
+          duration: 4000,
+          icon: '❌'
+        })
         router.push('/admin/xa')
       } finally {
         setIsLoadingData(false)
@@ -108,14 +115,26 @@ export default function ChinhSuaXaPage({ params }: { params: Promise<{ maXa: str
       const data = await response.json()
 
       if (data.success) {
-        router.push('/admin/xa')
-        router.refresh()
+        toast.success('Cập nhật xã thành công!', {
+          duration: 3000,
+          icon: '✅'
+        })
+        setTimeout(() => {
+          router.push(`/admin/xa/${maXa}`)
+          router.refresh()
+        }, 1000)
       } else {
-        alert(data.error || 'Có lỗi xảy ra khi cập nhật xã')
+        toast.error(data.error || 'Có lỗi xảy ra khi cập nhật xã', {
+          duration: 4000,
+          icon: '❌'
+        })
       }
     } catch (error) {
       console.error('Error updating address:', error)
-      alert('Có lỗi xảy ra khi cập nhật xã')
+      toast.error('Có lỗi xảy ra khi cập nhật xã', {
+        duration: 4000,
+        icon: '❌'
+      })
     } finally {
       setIsLoading(false)
     }
@@ -152,7 +171,7 @@ export default function ChinhSuaXaPage({ params }: { params: Promise<{ maXa: str
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link href="/admin/xa">
+          <Link href={`/admin/xa/${maXa}`}>
             <Button variant="outline" size="icon">
               <ArrowLeft className="h-4 w-4" />
             </Button>
@@ -224,7 +243,7 @@ export default function ChinhSuaXaPage({ params }: { params: Promise<{ maXa: str
                   </>
                 )}
               </Button>
-              <Link href="/admin/xa" className="flex-1">
+              <Link href={`/admin/xa/${maXa}`} className="flex-1">
                 <Button
                   type="button"
                   variant="outline"

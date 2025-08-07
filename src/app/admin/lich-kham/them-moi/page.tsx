@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect, Suspense } from 'react'
+import toast from 'react-hot-toast'
 
-// Force dynamic rendering
 export const dynamic = 'force-dynamic'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -24,6 +24,13 @@ function ThemLichKhamContent() {
     const id = searchParams.get('petId')
     setPetId(id)
   }, [searchParams])
+
+  // Determine back URL based on where user came from
+  const maHoSo = searchParams.get('petId') || searchParams.get('maHoSo')
+  const maKhachHang = searchParams.get('maKhachHang')
+  const backUrl = maHoSo 
+    ? `/admin/ho-so-thu/${maHoSo}${maKhachHang ? `?maKhachHang=${maKhachHang}` : ''}`
+    : '/admin/lich-kham'
 
   const [formData, setFormData] = useState<ScheduleFormData>({
     petId: petId || '',
@@ -91,14 +98,26 @@ function ThemLichKhamContent() {
       const result = await response.json()
 
       if (result.success) {
-        router.push('/admin/ho-so-thu')
+        toast.success('Tạo lịch khám thành công!', {
+          duration: 3000,
+          icon: '✅'
+        })
+        setTimeout(() => {
+          router.push(backUrl)
+        }, 1000)
       } else {
         console.error('Error creating schedule:', result.error)
-        alert('Có lỗi xảy ra khi tạo lịch khám. Vui lòng thử lại.')
+        toast.error('Có lỗi xảy ra khi tạo lịch khám. Vui lòng thử lại.', {
+          duration: 4000,
+          icon: '❌'
+        })
       }
     } catch (error) {
       console.error('Error submitting form:', error)
-      alert('Có lỗi xảy ra khi tạo lịch khám. Vui lòng thử lại.')
+      toast.error('Có lỗi xảy ra khi tạo lịch khám. Vui lòng thử lại.', {
+        duration: 4000,
+        icon: '❌'
+      })
     } finally {
       setIsSubmitting(false)
     }
@@ -108,7 +127,7 @@ function ThemLichKhamContent() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Link href="/admin/lich-kham">
+        <Link href={backUrl}>
            <Button variant="outline" size="sm">
              <ArrowLeft className="mr-2 h-4 w-4" />
              Quay lại
@@ -280,7 +299,7 @@ function ThemLichKhamContent() {
 
             {/* Form Actions */}
             <div className="flex items-center justify-end gap-3">
-              <Link href="/admin/lich-kham">
+              <Link href={backUrl}>
                  <Button type="button" variant="outline" disabled={isSubmitting}>
                    Hủy
                  </Button>

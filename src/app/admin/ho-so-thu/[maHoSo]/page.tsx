@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Edit, Calendar, Plus, FileText, User, Phone, MapPin, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -24,8 +24,13 @@ const ITEMS_PER_PAGE = 6
 
 export default function PetDetailPage() {
   const params = useParams()
+  const searchParams = useSearchParams()
   const maHoSo = params.maHoSo as string
   const examStatus = useExamStatus()
+  
+  // Determine back URL based on where user came from
+  const maKhachHang = searchParams.get('maKhachHang')
+  const backUrl = maKhachHang ? `/admin/khach-hang/${maKhachHang}` : '/admin/ho-so-thu'
   
   const [pet, setPet] = useState<Pet | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -38,28 +43,29 @@ export default function PetDetailPage() {
   })
 
   // Fetch pet data
-  useEffect(() => {
-    const fetchPet = async () => {
-      try {
-        setIsLoading(true)
-        const response = await fetch(`/api/ho-so-thu/${maHoSo}`)
-        const data = await response.json()
-        
-        if (data.success) {
-          setPet(data.data)
-          setFormData({
-            tenThu: data.data.tenThu
-          })
-        } else {
-          console.error('Failed to fetch pet:', data.message)
-        }
-      } catch (error) {
-        console.error('Error fetching pet:', error)
-      } finally {
-        setIsLoading(false)
+  const fetchPet = async () => {
+    try {
+      setIsLoading(true)
+      const response = await fetch(`/api/ho-so-thu/${maHoSo}`)
+      const data = await response.json()
+      
+      if (data.success) {
+        setPet(data.data)
+        setFormData({
+          tenThu: data.data.tenThu
+        })
+      } else {
+        // Navigate back sequentially like mobile
+        window.history.back()
       }
+    } catch (error) {
+      console.error('Error fetching pet:', error)
+    } finally {
+      setIsLoading(false)
     }
+  }
 
+  useEffect(() => {
     if (maHoSo) {
       fetchPet()
     }
@@ -197,7 +203,7 @@ export default function PetDetailPage() {
           <div className="hidden sm:block">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <Link href="/admin/ho-so-thu">
+                <Link href={backUrl}>
                   <Button variant="outline">
                     <ArrowLeft className="mr-2 h-4 w-4" />
                     Quay lại
@@ -408,7 +414,7 @@ export default function PetDetailPage() {
                     petId={pet.maHoSo}
                     onSuccess={() => {
                       // Refresh lịch khám sau khi thêm thành công
-                      window.location.reload()
+                      fetchPet()
                     }}
                     triggerButton={
                       <Button size="sm" className="ml-3">
@@ -457,7 +463,7 @@ export default function PetDetailPage() {
                             schedule={schedule}
                             onSuccess={() => {
                               // Refresh lịch khám sau khi xóa thành công
-                              window.location.reload()
+                              fetchPet()
                             }}
                           />
                         </div>
@@ -479,7 +485,7 @@ export default function PetDetailPage() {
                               schedule={schedule}
                               onSuccess={() => {
                                 // Refresh lịch khám sau khi sửa thành công
-                                window.location.reload()
+                                fetchPet()
                               }}
                             />
                           </div>
@@ -519,7 +525,7 @@ export default function PetDetailPage() {
                   <p className="text-gray-500 mb-6 max-w-sm mx-auto">
                     Thú cưng này chưa có lịch sử khám bệnh nào. Hãy tạo lịch khám đầu tiên.
                   </p>
-                  <Link href={`/admin/lich-kham/them-moi?maHoSo=${pet.maHoSo}`}>
+                  <Link href={`/admin/lich-kham/them-moi?petId=${pet.maHoSo}${maKhachHang ? `&maKhachHang=${maKhachHang}` : ''}`}>
                     <Button className="w-full sm:w-auto transition-all hover:shadow-md">
                       <Plus className="mr-2 h-4 w-4" />
                       <span className="hidden sm:inline">Thêm lịch khám đầu tiên</span>

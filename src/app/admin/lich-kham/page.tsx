@@ -15,6 +15,7 @@ import { ScheduleTable } from '@/components/tables/schedule-table'
 interface Schedule {
   id: number
   ngayKham: Date
+  soNgay: number
   ngayTaiKham: Date | null
   ghiChu: string | null
   trangThaiKham: string

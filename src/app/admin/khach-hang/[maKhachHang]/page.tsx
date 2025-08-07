@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import toast from 'react-hot-toast'
 import { ArrowLeft, Edit, Trash2, User, Phone, MapPin, Heart, Calendar, Loader2, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
@@ -72,26 +73,61 @@ export default function CustomerDetailPage({ params }: CustomerDetailPageProps) 
   }, [maKhachHang, router])
 
   const handleDelete = async () => {
-    if (!customer) return
-
-    setIsDeleting(true)
-    try {
-      const response = await fetch(`/api/khach-hang/${customer.maKhachHang}`, {
-        method: 'DELETE'
-      })
-
-      if (response.ok) {
-        router.push('/admin/khach-hang?success=deleted')
-      } else {
-        const errorData = await response.json()
-        alert(errorData.message || 'Có lỗi xảy ra khi xóa khách hàng')
+    const deletePromise = new Promise(async (resolve, reject) => {
+      const confirmed = confirm(`Bạn có chắc chắn muốn xóa khách hàng "${customer?.tenKhachHang}"? Hành động này không thể hoàn tác.`)
+      
+      if (!confirmed) {
+        reject(new Error('Đã hủy xóa'))
+        return
       }
-    } catch (error) {
-      console.error('Error deleting customer:', error)
-      alert('Có lỗi xảy ra khi kết nối đến server')
-    } finally {
-      setIsDeleting(false)
-    }
+
+      setIsDeleting(true)
+      
+      try {
+        const response = await fetch(`/api/khach-hang/${maKhachHang}`, {
+           method: 'DELETE'
+         })
+
+        if (response.ok) {
+          resolve('Xóa khách hàng thành công!')
+          setTimeout(() => {
+            router.push('/admin/khach-hang?success=deleted')
+          }, 1000)
+        } else {
+          const errorData = await response.json()
+          reject(new Error(errorData.message || 'Có lỗi xảy ra khi xóa khách hàng'))
+        }
+      } catch (error) {
+        console.error('Error deleting customer:', error)
+        reject(new Error('Có lỗi xảy ra khi kết nối đến server'))
+      } finally {
+        setIsDeleting(false)
+      }
+    })
+
+    toast.promise(
+      deletePromise,
+      {
+        loading: 'Đang xóa khách hàng...',
+        success: (message) => message as string,
+        error: (err) => err.message === 'Đã hủy xóa' ? '' : err.message,
+      },
+      {
+        success: {
+          duration: 3000,
+          icon: '✅'
+        },
+        error: {
+          duration: 4000,
+          icon: '❌'
+        },
+        loading: {
+          icon: '⏳'
+        }
+      }
+    ).catch(() => {
+      // Xử lý trường hợp người dùng hủy xóa
+    })
   }
 
   if (isLoading) {
@@ -143,11 +179,7 @@ export default function CustomerDetailPage({ params }: CustomerDetailPageProps) 
           <Button 
             variant="destructive" 
             disabled={customer.hoSoThu.length > 0 || isDeleting}
-            onClick={() => {
-              if (confirm(`Bạn có chắc chắn muốn xóa khách hàng "${customer.tenKhachHang}"? Hành động này không thể hoàn tác.`)) {
-                handleDelete()
-              }
-            }}
+            onClick={handleDelete}
           >
             {isDeleting ? (
               <>
@@ -238,7 +270,7 @@ export default function CustomerDetailPage({ params }: CustomerDetailPageProps) 
               {customer.hoSoThu.map((pet) => (
                 <Link
                   key={pet.maHoSo}
-                  href={`/admin/ho-so-thu/${pet.maHoSo}`}
+                  href={`/admin/ho-so-thu/${pet.maHoSo}?maKhachHang=${customer.maKhachHang}`}
                   className="block p-4 border rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   <div className="flex items-center justify-between mb-2">

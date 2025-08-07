@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { formatDate, formatPhoneNumber } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
+import { DeletePetModal } from '@/components/modals/delete-pet-modal'
 import type { PetTableData, PetTableProps } from '@/types'
 
 // Status configuration
@@ -24,7 +25,7 @@ function QRCodeButton({ petId, petName }: { petId: string; petName: string }) {
   const profileUrl = typeof window !== 'undefined' ? `${window.location.origin}/admin/ho-so-thu/${petId}` : ''
 
   return (
-    <div className="relative">
+    <div className="relative" suppressHydrationWarning>
       <Button
         variant="ghost"
         size="sm"
@@ -40,9 +41,9 @@ function QRCodeButton({ petId, petName }: { petId: string; petName: string }) {
       </Button>
       
       {showQR && (
-        <div className="absolute right-0 top-10 z-50 rounded-lg border border-gray-200 bg-white p-4 shadow-lg">
-          <div className="text-center">
-            <div className="mb-2">
+        <div className="absolute right-0 top-10 z-50 rounded-lg border border-gray-200 bg-white p-4 shadow-lg" suppressHydrationWarning>
+          <div className="text-center" suppressHydrationWarning>
+            <div className="mb-2" suppressHydrationWarning>
               <QRCodeSVG
                 value={profileUrl}
                 size={100}
@@ -55,7 +56,7 @@ function QRCodeButton({ petId, petName }: { petId: string; petName: string }) {
               {petName}
             </p>
           </div>
-          <div className="absolute -top-2 right-4 h-4 w-4 rotate-45 border-l border-t border-gray-200 bg-white"></div>
+          <div className="absolute -top-2 right-4 h-4 w-4 rotate-45 border-l border-t border-gray-200 bg-white" suppressHydrationWarning></div>
         </div>
       )}
     </div>
@@ -86,7 +87,7 @@ export function PetTable({ data: pets, pagination }: PetTableProps) {
   return (
     <div className="space-y-4" suppressHydrationWarning>
       {/* Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" suppressHydrationWarning>
         {pets.map((pet: PetTableData) => {
           const lastCheckup = pet.lichTheoDoi[0]
           
@@ -115,17 +116,42 @@ export function PetTable({ data: pets, pagination }: PetTableProps) {
               key={pet.maHoSo} 
               className={`cursor-pointer hover:shadow-md transition-all border ${cardStyle}`}
               onClick={() => router.push(`/admin/ho-so-thu/${pet.maHoSo}`)}
+              suppressHydrationWarning
             >
-              <CardContent className="p-4">
+              <CardContent className="p-4" suppressHydrationWarning>
                 {/* Header */}
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex-1">
+                <div className="flex items-start justify-between mb-3" suppressHydrationWarning>
+                  <div className="flex-1" suppressHydrationWarning>
                     <h3 className="font-semibold text-lg text-gray-900 mb-1">
                       {pet.tenThu}
                     </h3>
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1" suppressHydrationWarning>
                     <QRCodeButton petId={pet.maHoSo} petName={pet.tenThu} />
+                    
+                    {/* Delete Button */}
+                    <DeletePetModal
+                      pet={pet}
+                      onSuccess={() => {
+                        // Refresh the page to update the list
+                        window.location.reload()
+                      }}
+                      triggerButton={
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                          }}
+                          title="Xóa hồ sơ"
+                          suppressHydrationWarning
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      }
+                    />
+                    
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button 
@@ -137,7 +163,7 @@ export function PetTable({ data: pets, pagination }: PetTableProps) {
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
+                      <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
                         <DropdownMenuItem asChild>
                           <Link href={`/admin/ho-so-thu/${pet.maHoSo}`}>
                             <Eye className="mr-2 h-4 w-4" />
@@ -156,25 +182,23 @@ export function PetTable({ data: pets, pagination }: PetTableProps) {
                             Đặt lịch khám
                           </Link>
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="text-red-600">
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Xóa
-                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
                 </div>
 
+
+
                 {/* Owner Info */}
-                <div className="space-y-2 mb-4">
-                  <div className="flex items-center gap-2">
+                <div className="space-y-2 mb-4" suppressHydrationWarning>
+                  <div className="flex items-center gap-2" suppressHydrationWarning>
                     <User className="h-4 w-4 text-gray-400" />
                     <span className="font-medium text-gray-900">
                       {pet.khachHang.tenKhachHang}
                     </span>
                   </div>
                   
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2" suppressHydrationWarning>
                     <Phone className="h-4 w-4 text-gray-400" />
                     <Link 
                       href={`tel:${pet.khachHang.soDienThoai}`}
@@ -186,7 +210,7 @@ export function PetTable({ data: pets, pagination }: PetTableProps) {
                   </div>
                   
                   {pet.khachHang.diaChi && (
-                    <div className="flex items-start gap-2">
+                    <div className="flex items-start gap-2" suppressHydrationWarning>
                       <MapPin className="h-4 w-4 text-gray-400 mt-0.5" />
                       <span className="text-sm text-gray-600 line-clamp-2">
                         {pet.khachHang.diaChi}
@@ -196,21 +220,21 @@ export function PetTable({ data: pets, pagination }: PetTableProps) {
                 </div>
 
                 {/* Last Checkup */}
-                <div className="border-t pt-3">
-                  <div className="flex items-center justify-between">
+                <div className="border-t pt-3" suppressHydrationWarning>
+                  <div className="flex items-center justify-between" suppressHydrationWarning>
                     <span className="text-sm font-medium text-gray-700">
                       Khám gần nhất
                     </span>
                     {lastCheckup ? (
-                      <div className="text-right">
-                        <div className="flex items-center gap-1 text-sm text-gray-900">
+                      <div className="text-right" suppressHydrationWarning>
+                        <div className="flex items-center gap-1 text-sm text-gray-900" suppressHydrationWarning>
                           <Calendar className="h-3 w-3" />
                           {formatDate(lastCheckup.ngayKham)}
                         </div>
                         {lastCheckup.ngayTaiKham && (
                           <div className={`text-xs mt-1 ${
                             isUpcomingRecheck ? 'text-red-600 font-semibold' : 'text-blue-600'
-                          }`}>
+                          }`} suppressHydrationWarning>
                             Tái khám: {formatDate(lastCheckup.ngayTaiKham)}
                             {isUpcomingRecheck && (
                               <span className="ml-1 text-red-500">⚠️</span>

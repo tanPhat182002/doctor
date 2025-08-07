@@ -33,11 +33,15 @@ function ThemHoSoThuPageContent() {
 
   const isUpdatingRef = useRef(false)
 
-  // Auto-fill customer info from URL parameter
+  // Auto-fill customer info from URL parameter and determine back URL
+  const [backUrl, setBackUrl] = useState('/admin/ho-so-thu')
+  
   useEffect(() => {
     const maKhachHang = searchParams.get('maKhachHang')
     if (maKhachHang) {
       setFormData(prev => ({ ...prev, maKhachHang }))
+      // If maKhachHang is provided, set back URL to that customer's detail page
+      setBackUrl(`/admin/khach-hang/${maKhachHang}`)
     }
   }, [searchParams])
 
@@ -124,8 +128,15 @@ function ThemHoSoThuPageContent() {
 
       const result = await response.json()
       
-      // Redirect to pet detail page or back to list
-      router.push(`/admin/ho-so-thu?success=created&id=${result.maHoSo}`)
+      // Redirect to pet list with customer filter
+      const maKhachHang = searchParams.get('maKhachHang')
+      if (maKhachHang) {
+        // If came from customer detail page, go to pet list with customer filter
+        router.push(`/admin/ho-so-thu?khachHang=${maKhachHang}&success=created&id=${result.maHoSo}`)
+      } else {
+        // Otherwise go to pet detail page
+        router.push(`/admin/ho-so-thu/${result.maHoSo}?success=created`)
+      }
     } catch (error) {
       console.error('Error creating pet record:', error)
       setErrors({ submit: 'Có lỗi xảy ra khi kết nối đến server' })
@@ -138,7 +149,7 @@ function ThemHoSoThuPageContent() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Link href="/admin/ho-so-thu">
+        <Link href={backUrl}>
           <Button variant="outline" size="sm">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Quay lại
@@ -335,7 +346,7 @@ function ThemHoSoThuPageContent() {
 
             {/* Form Actions */}
             <div className="flex items-center justify-end gap-3">
-              <Link href="/admin/ho-so-thu">
+              <Link href={backUrl}>
                 <Button type="button" variant="outline" disabled={isLoading}>
                   Hủy
                 </Button>

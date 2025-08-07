@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import toast from 'react-hot-toast'
 import { ArrowLeft, Save, MapPin, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -58,14 +59,26 @@ export default function ThemXaPage() {
       const data = await response.json()
 
       if (data.success) {
-        router.push('/admin/xa')
-        router.refresh()
+        toast.success('Tạo xã mới thành công!', {
+          duration: 3000,
+          icon: '✅'
+        })
+        setTimeout(() => {
+          router.push('/admin/xa')
+          router.refresh()
+        }, 1000)
       } else {
-        alert(data.error || 'Có lỗi xảy ra khi tạo xã mới')
+        toast.error(data.error || 'Có lỗi xảy ra khi tạo xã mới', {
+          duration: 4000,
+          icon: '❌'
+        })
       }
     } catch (error) {
       console.error('Error creating address:', error)
-      alert('Có lỗi xảy ra khi tạo xã mới')
+      toast.error('Có lỗi xảy ra khi tạo xã mới', {
+        duration: 4000,
+        icon: '❌'
+      })
     } finally {
       setIsLoading(false)
     }

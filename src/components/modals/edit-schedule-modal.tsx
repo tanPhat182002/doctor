@@ -6,7 +6,19 @@ import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { calculateFollowUpDate } from '@/utils/date-calculator'
 import { Edit, Trash2 } from 'lucide-react'
-import type { Schedule } from '@/types'
+import { useDeleteSchedule } from '@/hooks/api/use-schedules'
+import type { ExamStatus } from '@/types'
+
+// Modal-specific schedule interface
+interface ModalSchedule {
+  id: number
+  ngayKham: Date
+  soNgay: number
+  ngayTaiKham: Date | null
+  trangThaiKham: ExamStatus
+  ghiChu: string | null
+  maHoSo: string
+}
 
 interface ScheduleFormData {
   ngayKham: string
@@ -25,12 +37,12 @@ interface ScheduleFormErrors {
 }
 
 interface EditScheduleModalProps {
-  schedule: Schedule
+  schedule: ModalSchedule
   onSuccess?: () => void
 }
 
 interface DeleteScheduleModalProps {
-  schedule: Schedule
+  schedule: ModalSchedule
   onSuccess?: () => void
 }
 
@@ -43,28 +55,15 @@ const EXAM_STATUSES = [
 
 export function DeleteScheduleModal({ schedule, onSuccess }: DeleteScheduleModalProps) {
   const [isOpen, setIsOpen] = useState(false)
-  const [isDeleting, setIsDeleting] = useState(false)
+  const deleteSchedule = useDeleteSchedule()
 
   const handleDelete = async () => {
-    setIsDeleting(true)
-    
     try {
-      const response = await fetch(`/api/lich-kham/${schedule.id}`, {
-        method: 'DELETE'
-      })
-      
-      const result = await response.json()
-      
-      if (result.success) {
-        setIsOpen(false)
-        onSuccess?.()
-      } else {
-        console.error('Failed to delete schedule:', result.message)
-      }
+      await deleteSchedule.mutateAsync(schedule.id.toString())
+      setIsOpen(false)
+      onSuccess?.()
     } catch (error) {
       console.error('Error deleting schedule:', error)
-    } finally {
-      setIsDeleting(false)
     }
   }
 
@@ -95,16 +94,16 @@ export function DeleteScheduleModal({ schedule, onSuccess }: DeleteScheduleModal
             <Button
               variant="outline"
               onClick={() => setIsOpen(false)}
-              disabled={isDeleting}
+              disabled={deleteSchedule.isPending}
             >
               Hủy
             </Button>
             <Button
               variant="destructive"
               onClick={handleDelete}
-              disabled={isDeleting}
+              disabled={deleteSchedule.isPending}
             >
-              {isDeleting ? 'Đang xóa...' : 'Xóa'}
+              {deleteSchedule.isPending ? 'Đang xóa...' : 'Xóa'}
             </Button>
           </div>
         </div>

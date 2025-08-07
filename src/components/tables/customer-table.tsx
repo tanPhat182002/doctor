@@ -3,7 +3,8 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { MoreHorizontal, Edit, Trash2, Eye, Loader2, Phone, MapPin, User, Users, AlertTriangle } from 'lucide-react'
+import toast from 'react-hot-toast'
+import { Phone, MapPin, User, Users, AlertTriangle, MoreHorizontal, Edit, Trash2, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import {
@@ -22,32 +23,79 @@ export function CustomerTable({ data: customers, pagination }: CustomerTableProp
 
   const handleDelete = async (customer: CustomerTableData) => {
     if (customer.hoSoThu.length > 0) {
-      alert('Không thể xóa khách hàng có thú cưng. Vui lòng xóa tất cả thú cưng trước.')
-      return
-    }
-
-    if (!confirm(`Bạn có chắc chắn muốn xóa khách hàng "${customer.tenKhachHang}"? Hành động này không thể hoàn tác.`)) {
-      return
-    }
-
-    setDeletingCustomer(customer.maKhachHang)
-    try {
-      const response = await fetch(`/api/khach-hang/${customer.maKhachHang}`, {
-        method: 'DELETE'
+      toast.error('Không thể xóa khách hàng có thú cưng. Vui lòng xóa tất cả hồ sơ thú cưng trước.', {
+        duration: 4000,
+        icon: '⚠️'
       })
-
-      if (response.ok) {
-        router.push('/admin/khach-hang')
-      } else {
-        const errorData = await response.json()
-        alert(errorData.message || 'Có lỗi xảy ra khi xóa khách hàng')
-      }
-    } catch (error) {
-      console.error('Error deleting customer:', error)
-      alert('Có lỗi xảy ra khi kết nối đến server')
-    } finally {
-      setDeletingCustomer(null)
+      return
     }
+
+    // Sử dụng toast.promise để hiển thị trạng thái loading, success và error
+    const deletePromise = new Promise(async (resolve, reject) => {
+      const confirmed = confirm(`Bạn có chắc chắn muốn xóa khách hàng "${customer.tenKhachHang}"? Hành động này không thể hoàn tác.`)
+      
+      if (!confirmed) {
+        reject(new Error('Đã hủy xóa'))
+        return
+      }
+
+      setDeletingCustomer(customer.maKhachHang)
+      
+      try {
+        const response = await fetch(`/api/khach-hang/${customer.maKhachHang}`, {
+          method: 'DELETE'
+        })
+
+        if (response.ok) {
+          resolve('Xóa khách hàng thành công!')
+          setTimeout(() => {
+            router.push('/admin/khach-hang')
+          }, 1000)
+        } else {
+          const errorData = await response.json()
+          reject(new Error(errorData.message || 'Có lỗi xảy ra khi xóa khách hàng'))
+          router.refresh()
+        }
+      } catch (error) {
+        console.error('Error deleting customer:', error)
+        reject(new Error('Có lỗi xảy ra khi kết nối đến server'))
+      } finally {
+        setDeletingCustomer(null)
+      }
+    })
+
+    // Hiển thị toast với trạng thái loading, success và error
+    toast.promise(
+      deletePromise,
+      {
+        loading: 'Đang xóa khách hàng...',
+        success: (message) => message as string,
+        error: (err) => err.message === 'Đã hủy xóa' ? '' : err.message,
+      },
+      {
+        success: {
+          duration: 3000,
+          icon: '✅'
+        },
+        error: {
+          duration: 4000,
+          icon: '❌'
+        },
+        loading: {
+          icon: '⏳'
+        }
+      }
+    ).catch(() => {
+      // Xử lý trường hợp người dùng hủy xóa
+    })
+  }
+
+  const handleEdit = (maKhachHang: string) => {
+    toast.loading('Đang chuyển đến trang chỉnh sửa...', {
+      duration: 1000,
+      icon: '📝'
+    })
+    router.push(`/admin/khach-hang/${maKhachHang}/chinh-sua`)
   }
 
   const handleCardClick = (maKhachHang: string) => {
@@ -73,7 +121,9 @@ export function CustomerTable({ data: customers, pagination }: CustomerTableProp
   }
 
   return (
+
     <div className="space-y-4" suppressHydrationWarning>
+      
       {/* Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {customers.map((customer: CustomerTableData) => {
@@ -121,46 +171,43 @@ export function CustomerTable({ data: customers, pagination }: CustomerTableProp
                     <AlertTriangle className="h-5 w-5 text-red-500" />
                   )}
                 </div>
+                
+                {/* Action Menu */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button 
                       variant="ghost" 
+                      size="sm" 
                       className="h-8 w-8 p-0"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <span className="sr-only">Mở menu</span>
                       <MoreHorizontal className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem asChild>
-                      <Link href={`/admin/khach-hang/${customer.maKhachHang}`}>
-                        <Eye className="mr-2 h-4 w-4" />
-                        Xem chi tiết
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href={`/admin/khach-hang/${customer.maKhachHang}/chinh-sua`}>
-                        <Edit className="mr-2 h-4 w-4" />
-                        Chỉnh sửa
-                      </Link>
+                    <DropdownMenuItem 
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleEdit(customer.maKhachHang)
+                      }}
+                    >
+                      <Edit className="mr-2 h-4 w-4" />
+                      Chỉnh sửa
                     </DropdownMenuItem>
                     <DropdownMenuItem 
-                      className="text-red-600"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleDelete(customer)
+                      }}
                       disabled={deletingCustomer === customer.maKhachHang}
-                      onClick={() => handleDelete(customer)}
+                      className="text-red-600 focus:text-red-600"
                     >
                       {deletingCustomer === customer.maKhachHang ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Đang xóa...
-                        </>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       ) : (
-                        <>
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Xóa
-                        </>
+                        <Trash2 className="mr-2 h-4 w-4" />
                       )}
+                      {deletingCustomer === customer.maKhachHang ? 'Đang xóa...' : 'Xóa'}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>

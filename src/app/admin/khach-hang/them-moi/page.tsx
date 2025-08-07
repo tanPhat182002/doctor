@@ -53,13 +53,17 @@ function ThemKhachHangContent() {
     fetchAddresses()
   }, [])
 
-  // Auto-fill maXa from URL parameter
+  // Auto-fill maXa from URL parameter and determine back URL
+  const [backUrl, setBackUrl] = useState('/admin/khach-hang')
+  
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search)
       const maXaParam = urlParams.get('maXa')
       if (maXaParam) {
         setFormData(prev => ({ ...prev, maXa: maXaParam }))
+        // If maXa is provided, set back URL to that xa's detail page
+        setBackUrl(`/admin/xa/${maXaParam}`)
       }
     }
   }, [])
@@ -114,8 +118,16 @@ function ThemKhachHangContent() {
 
       const result = await response.json()
       
-      // Redirect to customer detail page or back to list
-      router.push(`/admin/khach-hang?success=created&id=${result.maKhachHang}`)
+      // Redirect back to the appropriate page
+      const urlParams = new URLSearchParams(window.location.search)
+      const maXaParam = urlParams.get('maXa')
+      if (maXaParam) {
+        // If came from xa detail page, go back there
+        router.push(`/admin/xa/${maXaParam}?success=created&id=${result.maKhachHang}`)
+      } else {
+        // Otherwise go to customer list
+        router.push(`/admin/khach-hang?success=created&id=${result.maKhachHang}`)
+      }
     } catch (error) {
       console.error('Error creating customer:', error)
       setErrors({ submit: 'Có lỗi xảy ra khi kết nối đến server' })
@@ -128,7 +140,7 @@ function ThemKhachHangContent() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Link href="/admin/khach-hang">
+        <Link href={backUrl}>
           <Button variant="outline" size="sm">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Quay lại
@@ -246,7 +258,7 @@ function ThemKhachHangContent() {
 
             {/* Form Actions */}
             <div className="flex items-center justify-end gap-3">
-              <Link href="/admin/khach-hang">
+              <Link href={backUrl}>
                 <Button type="button" variant="outline" disabled={isLoading}>
                   Hủy
                 </Button>

@@ -22,6 +22,7 @@ interface ScheduleFormErrors {
   ngayTaiKham?: string
   trangThaiKham?: string
   ghiChu?: string
+  submit?: string
 }
 
 interface Pet {
@@ -159,7 +160,7 @@ export function AddScheduleModal({ petId, onSuccess, triggerButton }: AddSchedul
         setIsOpen(false)
         setFormData({
           maHoSo: petId || '',
-          ngayKham: '',
+          ngayKham: new Date().toISOString().slice(0, 16),
           soNgay: '',
           ngayTaiKham: '',
           trangThaiKham: 'CHUA_KHAM',
@@ -168,10 +169,15 @@ export function AddScheduleModal({ petId, onSuccess, triggerButton }: AddSchedul
         setErrors({})
         onSuccess?.()
       } else {
-        console.error('Failed to create schedule:', result.message)
+        console.error('Failed to create schedule:', result.message || result.error || 'Unknown error')
+        // Show error message to user if available
+        if (result.error) {
+          setErrors({ submit: result.error })
+        }
       }
     } catch (error) {
       console.error('Error creating schedule:', error)
+      setErrors({ submit: 'Có lỗi xảy ra khi tạo lịch khám. Vui lòng thử lại.' })
     } finally {
       setIsSubmitting(false)
     }
@@ -301,6 +307,12 @@ export function AddScheduleModal({ petId, onSuccess, triggerButton }: AddSchedul
               placeholder="Nhập ghi chú về lịch khám (tùy chọn)"
             />
           </div>
+          
+          {errors.submit && (
+            <div className="text-red-500 text-sm mt-2 p-2 bg-red-50 border border-red-200 rounded">
+              {errors.submit}
+            </div>
+          )}
           
           <div className="flex gap-3 pt-4">
             <Button 

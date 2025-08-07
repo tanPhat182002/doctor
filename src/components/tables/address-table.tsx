@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import toast from 'react-hot-toast'
 import { Edit, Trash2, Users, Eye, MapPin, MoreVertical, AlertTriangle, UserPlus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -43,28 +44,69 @@ export function AddressTable({ data, pagination }: AddressTableProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const handleDelete = async (maXa: string) => {
-    setDeletingId(maXa)
-    try {
-      const response = await fetch(`/api/xa/${maXa}`, {
-        method: 'DELETE',
-      })
+    const deletePromise = new Promise(async (resolve, reject) => {
+      const confirmed = confirm('Bạn có chắc chắn muốn xóa xã này? Hành động này không thể hoàn tác.')
       
-      const result = await response.json()
-      
-      if (result.success) {
-        router.refresh()
-      } else {
-        alert(result.error || 'Có lỗi xảy ra khi xóa xã')
+      if (!confirmed) {
+        reject(new Error('Đã hủy xóa'))
+        return
       }
-    } catch (error) {
-      console.error('Error deleting address:', error)
-      alert('Có lỗi xảy ra khi xóa xã')
-    } finally {
-      setDeletingId(null)
-    }
+
+      setDeletingId(maXa)
+      
+      try {
+        const response = await fetch(`/api/xa/${maXa}`, {
+          method: 'DELETE',
+        })
+        
+        const result = await response.json()
+        
+        if (result.success) {
+          resolve('Xóa xã thành công!')
+          setTimeout(() => {
+            router.refresh()
+          }, 1000)
+        } else {
+          reject(new Error(result.error || 'Có lỗi xảy ra khi xóa xã'))
+        }
+      } catch (error) {
+        console.error('Error deleting address:', error)
+        reject(new Error('Có lỗi xảy ra khi xóa xã'))
+      } finally {
+        setDeletingId(null)
+      }
+    })
+
+    toast.promise(
+      deletePromise,
+      {
+        loading: 'Đang xóa xã...',
+        success: (message) => message as string,
+        error: (err) => err.message === 'Đã hủy xóa' ? '' : err.message,
+      },
+      {
+        success: {
+          duration: 3000,
+          icon: '✅'
+        },
+        error: {
+          duration: 4000,
+          icon: '❌'
+        },
+        loading: {
+          icon: '⏳'
+        }
+      }
+    ).catch(() => {
+      // Xử lý trường hợp người dùng hủy xóa
+    })
   }
 
   const handleEdit = (maXa: string) => {
+    toast.loading('Đang chuyển đến trang chỉnh sửa...', {
+      duration: 1000,
+      icon: '📝'
+    })
     router.push(`/admin/xa/${maXa}/chinh-sua`)
   }
 
@@ -177,10 +219,14 @@ export function AddressTable({ data, pagination }: AddressTableProps) {
                        <DropdownMenuItem
                          onClick={(e) => {
                            e.stopPropagation()
-                           const confirmMessage = `Bạn có chắc chắn muốn xóa xã "${address.tenXa}"?${address._count.khachHangs > 0 ? `\nLưu ý: Xã này đang được sử dụng bởi ${address._count.khachHangs} khách hàng.` : ''}`
-                           if (window.confirm(confirmMessage)) {
-                             handleDelete(address.maXa)
+                           if (address._count.khachHangs > 0) {
+                             toast.error(`Không thể xóa xã "${address.tenXa}" vì đang được sử dụng bởi ${address._count.khachHangs} khách hàng.`, {
+                               duration: 4000,
+                               icon: '⚠️'
+                             })
+                             return
                            }
+                           handleDelete(address.maXa)
                          }}
                          className="flex items-center gap-2 text-red-600 focus:text-red-600"
                          disabled={deletingId === address.maXa}

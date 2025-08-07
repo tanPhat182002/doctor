@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  # Next.js Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://postgres:password@db:5432/petmanagement?schema=public
+      - DIRECT_URL=postgresql://postgres:password@db:5432/petmanagement?schema=public
+      - NEXTAUTH_URL=http://localhost:3000
+      - NEXTAUTH_SECRET=your-secret-key-here
+      - NEXT_PUBLIC_API_URL=http://localhost:3000
+    depends_on:
+      - db
+    networks:
+      - pet-network
+    restart: unless-stopped
+
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=petmanagement
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./prisma/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - pet-network
+    restart: unless-stopped
+
+  # Prisma Studio (Optional - for database management)
+  prisma-studio:
+    build:
+      context: .
+      dockerfile: Dockerfile.prisma
+    ports:
+      - "5555:5555"
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@db:5432/petmanagement?schema=public
+    depends_on:
+      - db
+    networks:
+      - pet-network
+    profiles:
+      - tools
+
+volumes:
+  postgres_data:
+
+networks:
+  pet-network:
+    driver: bridge

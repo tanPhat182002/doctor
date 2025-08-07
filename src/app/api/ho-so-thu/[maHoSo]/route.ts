@@ -173,17 +173,19 @@ export async function DELETE(
       )
     }
     
-    // Check if pet has any schedules
-    if (existingPet.lichTheoDoi.length > 0) {
-      return NextResponse.json(
-        { success: false, error: 'Không thể xóa hồ sơ có lịch khám. Vui lòng xóa tất cả lịch khám trước.' },
-        { status: 400 }
-      )
-    }
-    
-    // Delete pet
-    await prisma.hoSoThu.delete({
-      where: { maHoSo }
+    // Delete all schedules first, then delete pet (cascade delete)
+    await prisma.$transaction(async (tx) => {
+      // Delete all schedules for this pet
+      if (existingPet.lichTheoDoi.length > 0) {
+        await tx.lichTheoDoi.deleteMany({
+          where: { maHoSo }
+        })
+      }
+      
+      // Delete pet
+      await tx.hoSoThu.delete({
+        where: { maHoSo }
+      })
     })
     
     return NextResponse.json({
