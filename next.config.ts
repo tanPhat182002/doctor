@@ -52,6 +52,20 @@ const nextConfig: NextConfig = {
   env: {
     CUSTOM_KEY: process.env.CUSTOM_KEY,
   },
+
+  // Copy public files for standalone build
+  async rewrites() {
+    return [
+      {
+        source: '/sw.js',
+        destination: '/sw.js',
+      },
+      {
+        source: '/manifest.json',
+        destination: '/manifest.json',
+      },
+    ]
+  },
 };
 
 export default nextConfig;

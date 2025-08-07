@@ -23,6 +23,9 @@ const CACHEABLE_APIS = [
   '/api/xa',
   '/api/huyen',
   '/api/tinh',
+  '/api/lich-tai-kham',
+  '/api/dashboard',
+  '/api/stats',
 ]
 
 // Install event - cache static resources
@@ -84,8 +87,8 @@ self.addEventListener('fetch', (event) => {
   
   // Handle different types of requests
   if (url.pathname.startsWith('/api/')) {
-    // API requests - Cache First with Network Fallback
-    event.respondWith(handleApiRequest(request))
+    // API requests - Network First with Cache Fallback for better offline support
+    event.respondWith(handleApiRequestNetworkFirst(request))
   } else if (isImageRequest(request)) {
     // Images - Cache First
     event.respondWith(handleImageRequest(request))
@@ -98,8 +101,8 @@ self.addEventListener('fetch', (event) => {
   }
 })
 
-// Handle API requests with caching
-async function handleApiRequest(request) {
+// Handle API requests with Network First strategy for better offline support
+async function handleApiRequestNetworkFirst(request) {
   const url = new URL(request.url)
   
   // Check if this API should be cached
@@ -110,26 +113,12 @@ async function handleApiRequest(request) {
   }
   
   try {
-    const cache = await caches.open(API_CACHE)
-    const cachedResponse = await cache.match(request)
-    
-    // If we have a cached response, return it immediately
-    if (cachedResponse) {
-      // Check if cache is stale (older than 5 minutes)
-      const cacheDate = new Date(cachedResponse.headers.get('sw-cache-date') || 0)
-      const isStale = Date.now() - cacheDate.getTime() > 5 * 60 * 1000
-      
-      if (!isStale) {
-        console.log('Serving from cache:', request.url)
-        return cachedResponse
-      }
-    }
-    
-    // Fetch from network
+    // Try network first
     const networkResponse = await fetch(request)
     
     // Cache successful responses
     if (networkResponse.ok) {
+      const cache = await caches.open(API_CACHE)
       const responseToCache = networkResponse.clone()
       
       // Add cache timestamp
@@ -156,13 +145,14 @@ async function handleApiRequest(request) {
     const cachedResponse = await cache.match(request)
     
     if (cachedResponse) {
+      console.log('Serving from cache (offline):', request.url)
       return cachedResponse
     }
     
-    // Return offline page or error response
+    // Return offline response
     return new Response(
       JSON.stringify({ 
-        error: 'Không có kết nối mạng', 
+        error: 'Không có kết nối mạng và không có dữ liệu cache', 
         offline: true 
       }),
       {
@@ -172,6 +162,8 @@ async function handleApiRequest(request) {
     )
   }
 }
+
+
 
 // Handle image requests
 async function handleImageRequest(request) {
@@ -230,7 +222,8 @@ async function handleStaticRequest(request) {
     console.log('Static request failed:', error)
     // Try to serve from cache if network fails
     const cache = await caches.open(STATIC_CACHE)
-    return cache.match(request) || new Response('', { status: 404 })
+    const cachedResponse = await cache.match(request)
+    return cachedResponse || new Response('Not Found', { status: 404 })
   }
 }
 
