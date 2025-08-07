@@ -5,6 +5,56 @@ const STATIC_CACHE = 'static-v1'
 const API_CACHE = 'api-v1'
 const IMAGE_CACHE = 'images-v1'
 
+// Storage quota management
+const MAX_CACHE_SIZE = 50 * 1024 * 1024 // 50MB
+const CACHE_CLEANUP_THRESHOLD = 0.8 // Clean up when 80% full
+
+// Request persistent storage on mobile
+if ('storage' in navigator && 'persist' in navigator.storage) {
+  navigator.storage.persist().then(persistent => {
+    console.log('Persistent storage:', persistent)
+  })
+}
+
+// Check storage quota
+async function checkStorageQuota() {
+  if ('storage' in navigator && 'estimate' in navigator.storage) {
+    const estimate = await navigator.storage.estimate()
+    const usedPercentage = (estimate.usage || 0) / (estimate.quota || 1)
+    
+    console.log('Storage usage:', {
+      used: Math.round((estimate.usage || 0) / 1024 / 1024) + 'MB',
+      quota: Math.round((estimate.quota || 0) / 1024 / 1024) + 'MB',
+      percentage: Math.round(usedPercentage * 100) + '%'
+    })
+    
+    // Clean up if approaching quota limit
+    if (usedPercentage > CACHE_CLEANUP_THRESHOLD) {
+      await cleanupOldCache()
+    }
+    
+    return estimate
+  }
+  return null
+}
+
+// Clean up old cache entries
+async function cleanupOldCache() {
+  console.log('Cleaning up old cache entries...')
+  
+  const cacheNames = await caches.keys()
+  for (const cacheName of cacheNames) {
+    const cache = await caches.open(cacheName)
+    const requests = await cache.keys()
+    
+    // Remove oldest entries if cache is too large
+    if (requests.length > 100) {
+      const toDelete = requests.slice(0, requests.length - 50)
+      await Promise.all(toDelete.map(request => cache.delete(request)))
+    }
+  }
+}
+
 // Resources to cache immediately
 const STATIC_RESOURCES = [
   '/',
@@ -39,6 +89,7 @@ self.addEventListener('install', (event) => {
       }),
       caches.open(API_CACHE),
       caches.open(IMAGE_CACHE),
+      checkStorageQuota(), // Check storage quota on install
     ])
   )
   
@@ -352,6 +403,28 @@ self.addEventListener('message', (event) => {
       })
     )
   }
+  
+  if (event.data && event.data.type === 'CHECK_STORAGE_QUOTA') {
+    console.log('SW: Received CHECK_STORAGE_QUOTA message')
+    event.waitUntil(
+      checkStorageQuota().then((estimate) => {
+        console.log('SW: Storage quota check:', estimate)
+        event.ports[0].postMessage({ storageEstimate: estimate })
+      })
+    )
+  }
+  
+  if (event.data && event.data.type === 'REQUEST_PERSISTENT_STORAGE') {
+    console.log('SW: Received REQUEST_PERSISTENT_STORAGE message')
+    if ('storage' in navigator && 'persist' in navigator.storage) {
+      event.waitUntil(
+        navigator.storage.persist().then((persistent) => {
+          console.log('SW: Persistent storage granted:', persistent)
+          event.ports[0].postMessage({ persistentStorage: persistent })
+        })
+      )
+    }
+  }
 })
 
 // Get total cache size
@@ -370,6 +443,12 @@ async function getCacheSize() {
         totalSize += blob.size
       }
     }
+  }
+  
+  // Check if cache size exceeds limit
+  if (totalSize > MAX_CACHE_SIZE) {
+    console.warn('Cache size exceeded limit:', totalSize, 'bytes')
+    await cleanupOldCache()
   }
   
   return totalSize

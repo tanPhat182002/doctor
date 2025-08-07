@@ -25,6 +25,13 @@ export function ServiceWorkerManager() {
     if ('serviceWorker' in navigator) {
       setSwState(prev => ({ ...prev, isSupported: true }))
       registerServiceWorker()
+      
+      // Get initial cache size and check storage quota
+      setTimeout(() => {
+        getCacheSize()
+        checkStorageQuota()
+        requestPersistentStorage() // Request persistent storage for mobile
+      }, 1000)
     }
 
     // Listen for online/offline events
@@ -153,6 +160,43 @@ export function ServiceWorkerManager() {
       )
     } else {
       console.log('No service worker controller available')
+    }
+  }
+
+  const checkStorageQuota = () => {
+    console.log('checkStorageQuota called')
+    if (navigator.serviceWorker.controller) {
+      const messageChannel = new MessageChannel()
+      messageChannel.port1.onmessage = (event) => {
+        console.log('Received storage quota response:', event.data)
+        if (event.data && event.data.storageEstimate) {
+          const estimate = event.data.storageEstimate
+          const usedMB = Math.round((estimate.usage || 0) / 1024 / 1024)
+          const quotaMB = Math.round((estimate.quota || 0) / 1024 / 1024)
+          console.log(`Storage: ${usedMB}MB / ${quotaMB}MB`)
+        }
+      }
+      navigator.serviceWorker.controller.postMessage(
+        { type: 'CHECK_STORAGE_QUOTA' },
+        [messageChannel.port2]
+      )
+    }
+  }
+
+  const requestPersistentStorage = () => {
+    console.log('requestPersistentStorage called')
+    if (navigator.serviceWorker.controller) {
+      const messageChannel = new MessageChannel()
+      messageChannel.port1.onmessage = (event) => {
+        console.log('Received persistent storage response:', event.data)
+        if (event.data && event.data.persistentStorage !== undefined) {
+          console.log('Persistent storage granted:', event.data.persistentStorage)
+        }
+      }
+      navigator.serviceWorker.controller.postMessage(
+        { type: 'REQUEST_PERSISTENT_STORAGE' },
+        [messageChannel.port2]
+      )
     }
   }
 
