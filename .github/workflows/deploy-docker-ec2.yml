@@ -1,0 +1,54 @@
+name: Deploy Pet Management Application
+
+on:
+  push:
+    branches:
+      - deploy-with-docker-ec2
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
+        
+      - name: Create .env file
+        run: |
+          echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" >> .env
+          echo "DIRECT_URL=${{ secrets.DIRECT_URL }}" >> .env
+          echo "NEXTAUTH_URL=${{ secrets.NEXTAUTH_URL }}" >> .env
+          echo "NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}" >> .env
+          echo "NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}" >> .env
+          
+      - name: Build docker image
+        run: docker build -t jarvis097/test .
+        
+      - name: Login to docker hub
+        run: docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+        
+      - name: Publish image to docker hub
+        run: docker push jarvis097/test:latest
+
+  deploy:
+    needs: build
+    runs-on: self-hosted
+    steps:
+      - name: Pull image from docker hub
+        run: docker pull jarvis097/test:latest
+        
+      - name: Delete old container
+        run: docker rm -f pet-management-container || true
+        
+      - name: Run docker container
+        run: |
+          docker run -d -p 3000:3000 \
+            --name pet-management-container \
+            -e DATABASE_URL="${{ secrets.DATABASE_URL }}" \
+            -e DIRECT_URL="${{ secrets.DIRECT_URL }}" \
+            -e NEXTAUTH_URL="${{ secrets.NEXTAUTH_URL }}" \
+            -e NEXTAUTH_SECRET="${{ secrets.NEXTAUTH_SECRET }}" \
+            -e NEXT_PUBLIC_API_URL="${{ secrets.NEXT_PUBLIC_API_URL }}" \
+            jarvis097/test:latest
+            
+      - name: Clean up old images
+        run: docker image prune -f

@@ -10,34 +10,16 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=postgresql://postgres:password@db:5432/petmanagement?schema=public
-      - DIRECT_URL=postgresql://postgres:password@db:5432/petmanagement?schema=public
+      - DATABASE_URL=postgresql://postgres.dntbjamxbaoguowcynfa:kY2Y9QjFYt1MbHE7@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres?prepared_statements=false&pgbouncer=true&connection_limit=1
+      - DIRECT_URL=postgresql://postgres:kY2Y9QjFYt1MbHE7@db.dntbjamxbaoguowcynfa.supabase.co:5432/postgres
       - NEXTAUTH_URL=http://localhost:3000
-      - NEXTAUTH_SECRET=your-secret-key-here
+      - NEXTAUTH_SECRET=pet-management-secret-key-development-2024
       - NEXT_PUBLIC_API_URL=http://localhost:3000
-    depends_on:
-      - db
     networks:
       - pet-network
     restart: unless-stopped
 
-  # PostgreSQL Database
-  db:
-    image: postgres:15-alpine
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=petmanagement
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./prisma/init.sql:/docker-entrypoint-initdb.d/init.sql
-    networks:
-      - pet-network
-    restart: unless-stopped
-
-  # Prisma Studio (Optional - for database management)
+  
   prisma-studio:
     build:
       context: .
@@ -45,9 +27,7 @@ services:
     ports:
       - "5555:5555"
     environment:
-      - DATABASE_URL=postgresql://postgres:password@db:5432/petmanagement?schema=public
-    depends_on:
-      - db
+      - DATABASE_URL=postgresql://postgres.dntbjamxbaoguowcynfa:kY2Y9QjFYt1MbHE7@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres?prepared_statements=false&pgbouncer=true&connection_limit=1
     networks:
       - pet-network
     profiles:
