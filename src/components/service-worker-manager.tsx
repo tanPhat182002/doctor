@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { toast } from 'react-hot-toast'
 
 interface ServiceWorkerState {
@@ -19,6 +19,141 @@ export function ServiceWorkerManager() {
     cacheSize: 0,
     updateAvailable: false,
   })
+
+  const getCacheSize = useCallback(() => {
+    console.log('getCacheSize called, controller:', navigator.serviceWorker.controller)
+    if (navigator.serviceWorker.controller) {
+      const messageChannel = new MessageChannel()
+      messageChannel.port1.onmessage = (event) => {
+        console.log('Received cache size response:', event.data)
+        if (event.data && event.data.cacheSize !== undefined) {
+          setSwState(prev => ({ ...prev, cacheSize: event.data.cacheSize }))
+        }
+      }
+      navigator.serviceWorker.controller.postMessage(
+        { type: 'GET_CACHE_SIZE' },
+        [messageChannel.port2]
+      )
+    } else {
+      console.log('No service worker controller available')
+    }
+  }, [])
+
+  const checkStorageQuota = useCallback(() => {
+    console.log('checkStorageQuota called')
+    if (navigator.serviceWorker.controller) {
+      const messageChannel = new MessageChannel()
+      messageChannel.port1.onmessage = (event) => {
+        console.log('Received storage quota response:', event.data)
+        if (event.data && event.data.storageEstimate) {
+          const estimate = event.data.storageEstimate
+          const usedMB = Math.round((estimate.usage || 0) / 1024 / 1024)
+          const quotaMB = Math.round((estimate.quota || 0) / 1024 / 1024)
+          console.log(`Storage: ${usedMB}MB / ${quotaMB}MB`)
+        }
+      }
+      navigator.serviceWorker.controller.postMessage(
+        { type: 'CHECK_STORAGE_QUOTA' },
+        [messageChannel.port2]
+      )
+    }
+  }, [])
+
+  const requestPersistentStorage = useCallback(() => {
+    console.log('requestPersistentStorage called')
+    if (navigator.serviceWorker.controller) {
+      const messageChannel = new MessageChannel()
+      messageChannel.port1.onmessage = (event) => {
+        console.log('Received persistent storage response:', event.data)
+        if (event.data && event.data.persistentStorage !== undefined) {
+          console.log('Persistent storage granted:', event.data.persistentStorage)
+        }
+      }
+      navigator.serviceWorker.controller.postMessage(
+        { type: 'REQUEST_PERSISTENT_STORAGE' },
+        [messageChannel.port2]
+      )
+    }
+  }, [])
+
+  const updateServiceWorker = useCallback(() => {
+    if (navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' })
+      window.location.reload()
+    }
+  }, [])
+
+  const showUpdateNotification = useCallback(() => {
+    toast(
+      (t) => (
+        <div className="flex flex-col gap-2">
+          <div className="font-medium">Có phiên bản mới!</div>
+          <div className="text-sm text-gray-600">
+            Cập nhật ứng dụng để có trải nghiệm tốt nhất
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                updateServiceWorker()
+                toast.dismiss(t.id)
+              }}
+              className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
+            >
+              Cập nhật
+            </button>
+            <button
+              onClick={() => toast.dismiss(t.id)}
+              className="px-3 py-1 bg-gray-300 text-gray-700 rounded text-sm hover:bg-gray-400"
+            >
+              Để sau
+            </button>
+          </div>
+        </div>
+      ),
+      {
+        duration: 10000,
+        position: 'bottom-center',
+      }
+    )
+  }, [updateServiceWorker])
+
+  const registerServiceWorker = useCallback(async () => {
+    try {
+      const registration = await navigator.serviceWorker.register('/sw.js', {
+        scope: '/',
+      })
+
+      setSwState(prev => ({ ...prev, isRegistered: true }))
+
+      // Check for updates
+      registration.addEventListener('updatefound', () => {
+        const newWorker = registration.installing
+        if (newWorker) {
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              setSwState(prev => ({ ...prev, updateAvailable: true }))
+              showUpdateNotification()
+            }
+          })
+        }
+      })
+
+      // Listen for messages from service worker
+      navigator.serviceWorker.addEventListener('message', (event) => {
+        if (event.data && event.data.cacheSize) {
+          setSwState(prev => ({ ...prev, cacheSize: event.data.cacheSize }))
+        }
+      })
+
+      // Get initial cache size
+      getCacheSize()
+
+      console.log('Service Worker registered successfully')
+    } catch (error) {
+      console.error('Service Worker registration failed:', error)
+      toast.error('Không thể kích hoạt chế độ offline')
+    }
+  }, [getCacheSize, showUpdateNotification])
 
   useEffect(() => {
     // Check if service workers are supported
@@ -55,86 +190,7 @@ export function ServiceWorkerManager() {
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('offline', handleOffline)
     }
-  }, [])
-
-  const registerServiceWorker = async () => {
-    try {
-      const registration = await navigator.serviceWorker.register('/sw.js', {
-        scope: '/',
-      })
-
-      setSwState(prev => ({ ...prev, isRegistered: true }))
-
-      // Check for updates
-      registration.addEventListener('updatefound', () => {
-        const newWorker = registration.installing
-        if (newWorker) {
-          newWorker.addEventListener('statechange', () => {
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              setSwState(prev => ({ ...prev, updateAvailable: true }))
-              showUpdateNotification()
-            }
-          })
-        }
-      })
-
-      // Listen for messages from service worker
-      navigator.serviceWorker.addEventListener('message', (event) => {
-        if (event.data && event.data.cacheSize) {
-          setSwState(prev => ({ ...prev, cacheSize: event.data.cacheSize }))
-        }
-      })
-
-      // Get initial cache size
-      getCacheSize()
-
-      console.log('Service Worker registered successfully')
-    } catch (error) {
-      console.error('Service Worker registration failed:', error)
-      toast.error('Không thể kích hoạt chế độ offline')
-    }
-  }
-
-  const showUpdateNotification = () => {
-    toast(
-      (t) => (
-        <div className="flex flex-col gap-2">
-          <div className="font-medium">Có phiên bản mới!</div>
-          <div className="text-sm text-gray-600">
-            Cập nhật ứng dụng để có trải nghiệm tốt nhất
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => {
-                updateServiceWorker()
-                toast.dismiss(t.id)
-              }}
-              className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
-            >
-              Cập nhật
-            </button>
-            <button
-              onClick={() => toast.dismiss(t.id)}
-              className="px-3 py-1 bg-gray-300 text-gray-700 rounded text-sm hover:bg-gray-400"
-            >
-              Để sau
-            </button>
-          </div>
-        </div>
-      ),
-      {
-        duration: 10000,
-        position: 'bottom-center',
-      }
-    )
-  }
-
-  const updateServiceWorker = () => {
-    if (navigator.serviceWorker.controller) {
-      navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' })
-      window.location.reload()
-    }
-  }
+  }, [registerServiceWorker, getCacheSize, checkStorageQuota, requestPersistentStorage])
 
   const clearCache = async () => {
     if (navigator.serviceWorker.controller) {
@@ -144,61 +200,7 @@ export function ServiceWorkerManager() {
     }
   }
 
-  const getCacheSize = () => {
-    console.log('getCacheSize called, controller:', navigator.serviceWorker.controller)
-    if (navigator.serviceWorker.controller) {
-      const messageChannel = new MessageChannel()
-      messageChannel.port1.onmessage = (event) => {
-        console.log('Received cache size response:', event.data)
-        if (event.data && event.data.cacheSize !== undefined) {
-          setSwState(prev => ({ ...prev, cacheSize: event.data.cacheSize }))
-        }
-      }
-      navigator.serviceWorker.controller.postMessage(
-        { type: 'GET_CACHE_SIZE' },
-        [messageChannel.port2]
-      )
-    } else {
-      console.log('No service worker controller available')
-    }
-  }
 
-  const checkStorageQuota = () => {
-    console.log('checkStorageQuota called')
-    if (navigator.serviceWorker.controller) {
-      const messageChannel = new MessageChannel()
-      messageChannel.port1.onmessage = (event) => {
-        console.log('Received storage quota response:', event.data)
-        if (event.data && event.data.storageEstimate) {
-          const estimate = event.data.storageEstimate
-          const usedMB = Math.round((estimate.usage || 0) / 1024 / 1024)
-          const quotaMB = Math.round((estimate.quota || 0) / 1024 / 1024)
-          console.log(`Storage: ${usedMB}MB / ${quotaMB}MB`)
-        }
-      }
-      navigator.serviceWorker.controller.postMessage(
-        { type: 'CHECK_STORAGE_QUOTA' },
-        [messageChannel.port2]
-      )
-    }
-  }
-
-  const requestPersistentStorage = () => {
-    console.log('requestPersistentStorage called')
-    if (navigator.serviceWorker.controller) {
-      const messageChannel = new MessageChannel()
-      messageChannel.port1.onmessage = (event) => {
-        console.log('Received persistent storage response:', event.data)
-        if (event.data && event.data.persistentStorage !== undefined) {
-          console.log('Persistent storage granted:', event.data.persistentStorage)
-        }
-      }
-      navigator.serviceWorker.controller.postMessage(
-        { type: 'REQUEST_PERSISTENT_STORAGE' },
-        [messageChannel.port2]
-      )
-    }
-  }
 
   const formatBytes = (bytes: number) => {
     if (bytes === 0) return '0 Bytes'

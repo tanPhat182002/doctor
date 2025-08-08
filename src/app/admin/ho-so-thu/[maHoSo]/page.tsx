@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Edit, Calendar, Plus, FileText, User, Phone, MapPin, ChevronLeft, ChevronRight } from 'lucide-react'
@@ -43,7 +43,7 @@ export default function PetDetailPage() {
   })
 
   // Fetch pet data
-  const fetchPet = async () => {
+  const fetchPet = useCallback(async () => {
     try {
       setIsLoading(true)
       const response = await fetch(`/api/ho-so-thu/${maHoSo}`)
@@ -63,13 +63,13 @@ export default function PetDetailPage() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [maHoSo])
 
   useEffect(() => {
     if (maHoSo) {
       fetchPet()
     }
-  }, [maHoSo])
+  }, [maHoSo, fetchPet])
 
   const handleInputChange = (field: keyof PetEditFormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))

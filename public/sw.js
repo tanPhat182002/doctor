@@ -60,6 +60,7 @@ const STATIC_RESOURCES = [
   '/',
   '/admin',
   '/admin/dashboard',
+  
   '/manifest.json',
   '/favicon.ico',
   // Add other critical static resources
